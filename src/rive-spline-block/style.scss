@@ -1,0 +1,25 @@
+.wp-block-create-block-rive-spline-block {
+    // Default: respect content flow.
+    // Wrapper inside takes 100% of this width and applies aspect-ratio.
+    max-width: 100%;
+
+    .rsb-canvas-wrapper {
+        // Defensive: even if inline styles fail, don't collapse to 0.
+        min-height: 1px;
+        overflow: hidden;
+    }
+
+    // Center by default for non-aligned blocks (cap to a reasonable max
+    // so a 1:1 animation doesn't blow up to full viewport width).
+    &:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright) {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    // Wide and full keep WP defaults.
+    &.alignwide,
+    &.alignfull {
+        max-width: none;
+    }
+}
