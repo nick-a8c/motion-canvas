@@ -109,13 +109,25 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
         lottieContainer.style.height = '100%';
         wrapper.appendChild( lottieContainer );
 
+        // Read the new attributes from the block element.
+        const loop = block.dataset.loop !== '0';
+        const autoplay = block.dataset.autoplay !== '0';
+        const playbackSpeed = parseFloat( block.dataset.playbackSpeed ) || 1;
+        const trigger = block.dataset.trigger || 'autoplay';
+
+        // For non-autoplay triggers, we load the animation paused
+        // and start it ourselves when the trigger fires.
+        const shouldAutoplayOnLoad = autoplay && trigger === 'autoplay';
+
         const anim = lottie.loadAnimation( {
             container: lottieContainer,
             renderer: 'svg',
-            loop: true,
-            autoplay: true,
+            loop,
+            autoplay: shouldAutoplayOnLoad,
             path: fileUrl,
         } );
+
+        anim.setSpeed( playbackSpeed );
 
         if ( ! aspectRatioAttr ) {
             anim.addEventListener( 'DOMLoaded', () => {
@@ -125,6 +137,35 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
                     wrapper.style.aspectRatio = `${ w } / ${ h }`;
                 }
             } );
+        }
+
+        // Wire up triggers other than "autoplay".
+        if ( autoplay && trigger === 'hover' ) {
+            block.addEventListener( 'mouseenter', () => anim.play() );
+            block.addEventListener( 'mouseleave', () => anim.pause() );
+        }
+
+        if ( autoplay && trigger === 'click' ) {
+            block.style.cursor = 'pointer';
+            block.addEventListener( 'click', () => {
+                if ( anim.isPaused ) {
+                    anim.play();
+                } else {
+                    anim.pause();
+                }
+            } );
+        }
+
+        if ( autoplay && trigger === 'scroll' ) {
+            const observer = new IntersectionObserver( ( entries ) => {
+                entries.forEach( ( entry ) => {
+                    if ( entry.isIntersecting ) {
+                        anim.play();
+                        observer.unobserve( block );
+                    }
+                } );
+            }, { threshold: 0.3 } );
+            observer.observe( block );
         }
     }
 } );
