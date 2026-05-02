@@ -1,6 +1,23 @@
 import { __ } from '@wordpress/i18n';
-import { useBlockProps, InspectorControls, MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
-import { PanelBody, SelectControl, Button, TextControl, ToggleControl, RangeControl, Notice } from '@wordpress/components';
+import {
+	useBlockProps,
+	InspectorControls,
+	BlockControls,
+	MediaUpload,
+	MediaUploadCheck,
+} from '@wordpress/block-editor';
+import {
+	PanelBody,
+	SelectControl,
+	Button,
+	TextControl,
+	ToggleControl,
+	RangeControl,
+	Notice,
+	ToolbarGroup,
+	ToolbarDropdownMenu,
+	Modal,
+} from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import './editor.scss';
 
@@ -9,6 +26,11 @@ const TYPE_OPTIONS = [
 	{ label: 'Spline', value: 'spline' },
 	{ label: 'Lottie (JSON)', value: 'lottie' },
 ];
+
+const getTypeLabel = ( value ) => {
+	const match = TYPE_OPTIONS.find( ( opt ) => opt.value === value );
+	return match ? match.label : value;
+};
 
 const validateSplineUrl = (raw) => {
 	const trimmed = (raw || '').trim();
@@ -67,6 +89,9 @@ export default function Edit({ attributes, setAttributes }) {
 	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
 	const [splineError, setSplineError] = useState(null);
 
+	// State for the format-switch confirmation modal.
+	const [pendingFormatSwitch, setPendingFormatSwitch] = useState(null);
+
 	useEffect(() => {
 		if (!fileUrl) return;
 		if (animationType !== 'lottie') return;
@@ -118,22 +143,75 @@ export default function Edit({ attributes, setAttributes }) {
 		setAttributes({ splineUrl: result.url });
 	};
 
-	// When the user changes type from inside the empty placeholder, also
-	// clear any stale draft state so the inputs feel fresh.
 	const handleInlineTypeChange = (newType) => {
 		setAttributes({ animationType: newType });
 		setSplineError(null);
 	};
 
+	// Called when the user picks a different format from the toolbar
+	// dropdown WHILE a file is loaded. Stage the change for confirmation.
+	const requestToolbarFormatChange = ( newType ) => {
+		if ( newType === animationType ) return;
+		if ( ! hasContent ) {
+			// No file loaded — just switch directly.
+			setAttributes( { animationType: newType } );
+			return;
+		}
+		setPendingFormatSwitch( newType );
+	};
+
+	// User confirmed the destructive switch. Clear the appropriate file
+	// attribute and change the type. The block falls back to the empty
+	// placeholder for the new format.
+	const confirmFormatSwitch = () => {
+		const newType = pendingFormatSwitch;
+		const updates = { animationType: newType };
+
+		// Clear whichever file attribute applies to the OLD format.
+		if ( animationType === 'spline' ) {
+			updates.splineUrl = '';
+			setSplineUrlDraft( '' );
+		} else {
+			updates.fileUrl = '';
+		}
+
+		setAttributes( updates );
+		setSplineError( null );
+		setPendingFormatSwitch( null );
+	};
+
+	const cancelFormatSwitch = () => {
+		setPendingFormatSwitch( null );
+	};
+
+	// Build the toolbar dropdown's items dynamically so the active type
+	// shows a checkmark.
+	const toolbarFormatControls = TYPE_OPTIONS.map( ( option ) => ( {
+		title: option.label,
+		isActive: animationType === option.value,
+		onClick: () => requestToolbarFormatChange( option.value ),
+	} ) );
+
 	return (
 		<>
+			<BlockControls>
+				<ToolbarGroup>
+					<ToolbarDropdownMenu
+						icon="format-video"
+						label={ __( 'Format', 'rive-spline-block' ) }
+						text={ getTypeLabel( animationType ) }
+						controls={ toolbarFormatControls }
+					/>
+				</ToolbarGroup>
+			</BlockControls>
+
 			<InspectorControls>
 				<PanelBody title={__('Animation Settings', 'rive-spline-block')}>
 					<SelectControl
 						label={__('Animation Type', 'rive-spline-block')}
 						value={animationType}
 						options={TYPE_OPTIONS}
-						onChange={(val) => setAttributes({ animationType: val })}
+						onChange={(val) => requestToolbarFormatChange(val)}
 					/>
 					<TextControl
 						label={__('Aspect ratio (optional)', 'rive-spline-block')}
@@ -235,7 +313,6 @@ export default function Edit({ attributes, setAttributes }) {
 							<text x="24" y="30" textAnchor="middle" fontSize="20" fill="#8888ff">✦</text>
 						</svg>
 
-						{/* Inline format picker — saves a sidebar trip when first setting up the block. */}
 						<div style={{ width: '100%', maxWidth: '320px' }}>
 							<SelectControl
 								label={__('Format', 'rive-spline-block')}
@@ -311,6 +388,35 @@ export default function Edit({ attributes, setAttributes }) {
 					</div>
 				)}
 			</div>
+
+			{ pendingFormatSwitch && (
+				<Modal
+					title={ __( 'Switch animation format?', 'rive-spline-block' ) }
+					onRequestClose={ cancelFormatSwitch }
+					size="small"
+				>
+					<p style={ { marginTop: 0 } }>
+						{ __(
+							'Switching format will remove your current file. You can upload a new one after.',
+							'rive-spline-block'
+						) }
+					</p>
+					<p style={ { color: '#757575', fontSize: '13px' } }>
+						{ __( 'From: ', 'rive-spline-block' ) }
+						<strong>{ getTypeLabel( animationType ) }</strong>
+						{ __( ' → To: ', 'rive-spline-block' ) }
+						<strong>{ getTypeLabel( pendingFormatSwitch ) }</strong>
+					</p>
+					<div style={ { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' } }>
+						<Button variant="tertiary" onClick={ cancelFormatSwitch }>
+							{ __( 'Cancel', 'rive-spline-block' ) }
+						</Button>
+						<Button variant="primary" isDestructive onClick={ confirmFormatSwitch }>
+							{ __( 'Switch and remove file', 'rive-spline-block' ) }
+						</Button>
+					</div>
+				</Modal>
+			) }
 		</>
 	);
 }
