@@ -4,8 +4,12 @@ import { PanelBody, SelectControl, Button, TextControl, ToggleControl, RangeCont
 import { useEffect, useRef, useState } from '@wordpress/element';
 import './editor.scss';
 
-// Validate a Spline URL. Returns either { ok: true, url } with a cleaned URL,
-// or { ok: false, message } with a human-friendly error.
+const TYPE_OPTIONS = [
+	{ label: 'Rive (.riv)', value: 'rive' },
+	{ label: 'Spline', value: 'spline' },
+	{ label: 'Lottie (JSON)', value: 'lottie' },
+];
+
 const validateSplineUrl = (raw) => {
 	const trimmed = (raw || '').trim();
 
@@ -13,7 +17,6 @@ const validateSplineUrl = (raw) => {
 		return { ok: false, message: __('Please paste a URL.', 'rive-spline-block') };
 	}
 
-	// Reject pasted iframe embed code.
 	if (/<iframe|<\/iframe>/i.test(trimmed)) {
 		return {
 			ok: false,
@@ -24,10 +27,8 @@ const validateSplineUrl = (raw) => {
 		};
 	}
 
-	// Auto-prepend https:// if the user pasted a bare domain.
 	const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
-	// Try parsing it as a real URL.
 	let parsed;
 	try {
 		parsed = new URL(withProtocol);
@@ -38,7 +39,6 @@ const validateSplineUrl = (raw) => {
 		};
 	}
 
-	// Must be HTTPS for browsers to embed it without warnings.
 	if (parsed.protocol !== 'https:') {
 		return {
 			ok: false,
@@ -46,7 +46,6 @@ const validateSplineUrl = (raw) => {
 		};
 	}
 
-	// Must be a spline.design domain.
 	if (!/(^|\.)spline\.design$/i.test(parsed.hostname)) {
 		return {
 			ok: false,
@@ -65,7 +64,6 @@ export default function Edit({ attributes, setAttributes }) {
 	const lottieContainerRef = useRef(null);
 	const blockProps = useBlockProps();
 
-	// Local state for the inline Spline URL input + error message.
 	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
 	const [splineError, setSplineError] = useState(null);
 
@@ -120,6 +118,13 @@ export default function Edit({ attributes, setAttributes }) {
 		setAttributes({ splineUrl: result.url });
 	};
 
+	// When the user changes type from inside the empty placeholder, also
+	// clear any stale draft state so the inputs feel fresh.
+	const handleInlineTypeChange = (newType) => {
+		setAttributes({ animationType: newType });
+		setSplineError(null);
+	};
+
 	return (
 		<>
 			<InspectorControls>
@@ -127,11 +132,7 @@ export default function Edit({ attributes, setAttributes }) {
 					<SelectControl
 						label={__('Animation Type', 'rive-spline-block')}
 						value={animationType}
-						options={[
-							{ label: 'Rive (.riv)', value: 'rive' },
-							{ label: 'Spline', value: 'spline' },
-							{ label: 'Lottie (JSON)', value: 'lottie' },
-						]}
+						options={TYPE_OPTIONS}
 						onChange={(val) => setAttributes({ animationType: val })}
 					/>
 					<TextControl
@@ -233,6 +234,18 @@ export default function Edit({ attributes, setAttributes }) {
 							<circle cx="24" cy="24" r="24" fill="#333355" />
 							<text x="24" y="30" textAnchor="middle" fontSize="20" fill="#8888ff">✦</text>
 						</svg>
+
+						{/* Inline format picker — saves a sidebar trip when first setting up the block. */}
+						<div style={{ width: '100%', maxWidth: '320px' }}>
+							<SelectControl
+								label={__('Format', 'rive-spline-block')}
+								value={animationType}
+								options={TYPE_OPTIONS}
+								onChange={handleInlineTypeChange}
+								__nextHasNoMarginBottom
+							/>
+						</div>
+
 						<p style={{ color: '#8888aa', fontSize: '13px', margin: 0, textAlign: 'center' }}>
 							{animationType === 'spline'
 								? __('Paste your Spline public viewer URL', 'rive-spline-block')
