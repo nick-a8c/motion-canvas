@@ -28,6 +28,22 @@
             "type": "string",
             "default": ""
         },
+        "loop": {
+            "type": "boolean",
+            "default": true
+        },
+        "autoplay": {
+            "type": "boolean",
+            "default": true
+        },
+        "playbackSpeed": {
+            "type": "number",
+            "default": 1
+        },
+        "trigger": {
+            "type": "string",
+            "default": "autoplay"
+        },
         "align": {
             "type": "string"
         }
