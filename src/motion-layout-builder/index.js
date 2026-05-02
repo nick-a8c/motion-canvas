@@ -7,8 +7,12 @@ import {
 	Button,
 	MenuGroup,
 	MenuItem,
+	Notice,
 } from '@wordpress/components';
 import { useState, useEffect } from '@wordpress/element';
+import { useDispatch } from '@wordpress/data';
+import { createBlock } from '@wordpress/blocks';
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
 
 const MotionLayoutBuilderIcon = () => (
@@ -20,9 +24,6 @@ const MotionLayoutBuilderIcon = () => (
 	</svg>
 );
 
-// All the cell types a user can pick. The `label` is what shows in the menu
-// and inside the cell. The `value` is what we store in state and will use
-// later when generating blocks.
 const CELL_TYPES = [
 	{ value: 'empty', label: __('Empty', 'rive-spline-block') },
 	{ value: 'rive', label: __('Rive', 'rive-spline-block') },
@@ -33,14 +34,11 @@ const CELL_TYPES = [
 	{ value: 'image', label: __('Image', 'rive-spline-block') },
 ];
 
-// Look up the human label for a stored cell type value.
 const getCellLabel = (type) => {
 	const match = CELL_TYPES.find((option) => option.value === type);
 	return match ? match.label : type;
 };
 
-// Build an array of length rows*columns, preserving existing cell values
-// when the grid size changes.
 const buildCells = (rows, columns, previous = []) => {
 	const total = rows * columns;
 	const next = [];
@@ -50,10 +48,69 @@ const buildCells = (rows, columns, previous = []) => {
 	return next;
 };
 
+// Turn a cell descriptor into a real Gutenberg block.
+const createCellBlock = (cell) => {
+	switch (cell.type) {
+		case 'rive':
+			return createBlock('create-block/rive-spline-block', {
+				animationType: 'rive',
+			});
+		case 'spline':
+			return createBlock('create-block/rive-spline-block', {
+				animationType: 'spline',
+			});
+		case 'lottie':
+			return createBlock('create-block/rive-spline-block', {
+				animationType: 'lottie',
+			});
+		case 'paragraph':
+			return createBlock('core/paragraph', {});
+		case 'heading':
+			return createBlock('core/heading', { level: 2 });
+		case 'image':
+			return createBlock('core/image', {});
+		case 'empty':
+		default:
+			// An empty cell still needs *something* inside the column,
+			// otherwise the column collapses. A blank paragraph is the
+			// gentlest placeholder.
+			return createBlock('core/paragraph', {});
+	}
+};
+
+// Build the full block tree: an outer Columns block per row, with a
+// Column block per cell, each wrapping the chosen cell block.
+const buildLayoutBlocks = (rows, columns, cells) => {
+	const rowBlocks = [];
+
+	for (let r = 0; r < rows; r++) {
+		const columnBlocks = [];
+
+		for (let c = 0; c < columns; c++) {
+			const cellIndex = r * columns + c;
+			const cell = cells[cellIndex];
+			const innerBlock = createCellBlock(cell);
+
+			columnBlocks.push(
+				createBlock('core/column', {}, [innerBlock])
+			);
+		}
+
+		rowBlocks.push(
+			createBlock('core/columns', {}, columnBlocks)
+		);
+	}
+
+	return rowBlocks;
+};
+
 const MotionLayoutBuilder = () => {
 	const [rows, setRows] = useState(2);
 	const [columns, setColumns] = useState(2);
 	const [cells, setCells] = useState(() => buildCells(2, 2));
+	const [notice, setNotice] = useState(null);
+
+	const { insertBlocks } = useDispatch(blockEditorStore);
 
 	useEffect(() => {
 		setCells((previous) => buildCells(rows, columns, previous));
@@ -65,6 +122,15 @@ const MotionLayoutBuilder = () => {
 				i === index ? { ...cell, type: newType } : cell
 			)
 		);
+	};
+
+	const handleInsert = () => {
+		const blocks = buildLayoutBlocks(rows, columns, cells);
+		insertBlocks(blocks);
+		setNotice({
+			status: 'success',
+			message: __('Layout inserted.', 'rive-spline-block'),
+		});
 	};
 
 	return (
@@ -174,6 +240,28 @@ const MotionLayoutBuilder = () => {
 						/>
 					))}
 				</div>
+
+				<div style={{ marginTop: '20px' }}>
+					<Button
+						variant="primary"
+						onClick={handleInsert}
+						style={{ width: '100%', justifyContent: 'center' }}
+					>
+						{__('Insert layout', 'rive-spline-block')}
+					</Button>
+				</div>
+
+				{notice && (
+					<div style={{ marginTop: '12px' }}>
+						<Notice
+							status={notice.status}
+							isDismissible={true}
+							onRemove={() => setNotice(null)}
+						>
+							{notice.message}
+						</Notice>
+					</div>
+				)}
 			</PanelBody>
 		</PluginSidebar>
 	);
