@@ -1,0 +1,106 @@
+/**
+ * Scroll reveal animations for builder-inserted layouts and (later)
+ * standalone Rive/Spline/Lottie blocks.
+ *
+ * Activation pattern:
+ *   <div class="rsb-reveal rsb-reveal--style-fade-up rsb-reveal--cadence-cell rsb-reveal--speed-smooth">
+ *     <div class="wp-block-columns">
+ *       <div class="wp-block-column">...</div>
+ *     </div>
+ *   </div>
+ *
+ * On page load, JS adds .rsb-reveal--armed (initial state) to each animated
+ * element. When the wrapper enters the viewport, JS adds .rsb-reveal--in,
+ * which transitions each element to its resting state.
+ *
+ * House easing comes from Woo Motion Principles.
+ */
+
+ $rsb-easing: cubic-bezier(0.4, 0.14, 0.3, 1);
+
+ .rsb-reveal {
+     // Speed presets — define both per-element duration and stagger step.
+     &.rsb-reveal--speed-snappy {
+         --rsb-duration: 300ms;
+         --rsb-stagger: 80ms;
+     }
+     &.rsb-reveal--speed-smooth {
+         --rsb-duration: 600ms;
+         --rsb-stagger: 150ms;
+     }
+     &.rsb-reveal--speed-cinematic {
+         --rsb-duration: 1000ms;
+         --rsb-stagger: 300ms;
+     }
+ 
+     // Apply transition to whichever child the JS arms.
+     .rsb-reveal--armed {
+         transition:
+             opacity var(--rsb-duration) #{$rsb-easing},
+             transform var(--rsb-duration) #{$rsb-easing},
+             filter var(--rsb-duration) #{$rsb-easing};
+         will-change: opacity, transform, filter;
+     }
+ 
+     // ---------------------------------------------------------------
+     // Initial states (armed but not yet revealed) per style
+     // ---------------------------------------------------------------
+ 
+     &.rsb-reveal--style-fade {
+         .rsb-reveal--armed {
+             opacity: 0;
+         }
+     }
+ 
+     &.rsb-reveal--style-fade-up {
+         .rsb-reveal--armed {
+             opacity: 0;
+             transform: translateY(24px);
+         }
+     }
+ 
+     &.rsb-reveal--style-zoom {
+         .rsb-reveal--armed {
+             opacity: 0;
+             transform: scale(0.95);
+         }
+     }
+ 
+     &.rsb-reveal--style-blur {
+         .rsb-reveal--armed {
+             opacity: 0;
+             filter: blur(12px);
+         }
+     }
+ 
+     &.rsb-reveal--style-slide {
+         .rsb-reveal--armed {
+             opacity: 0;
+             transform: translateX(-32px);
+         }
+     }
+ 
+     // ---------------------------------------------------------------
+     // Revealed state — same for every style: reset to defaults.
+     // ---------------------------------------------------------------
+ 
+     .rsb-reveal--armed.rsb-reveal--in {
+         opacity: 1;
+         transform: none;
+         filter: none;
+     }
+ }
+ 
+ // ---------------------------------------------------------------
+ // Reduced motion: skip animation entirely. Content appears
+ // immediately in its resting state.
+ // ---------------------------------------------------------------
+ 
+ @media (prefers-reduced-motion: reduce) {
+     .rsb-reveal .rsb-reveal--armed {
+         opacity: 1 !important;
+         transform: none !important;
+         filter: none !important;
+         transition: none !important;
+     }
+ }

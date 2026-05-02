@@ -68,3 +68,37 @@ function rive_spline_block_enqueue_layout_builder() {
 	);
 }
 add_action( 'enqueue_block_editor_assets', 'rive_spline_block_enqueue_layout_builder' );
+/**
+ * Enqueue the scroll-reveal script and styles on the frontend.
+ * Loaded on every front-end page; the script is small and exits
+ * immediately if no .rsb-reveal elements exist on the page.
+ */
+function rive_spline_block_enqueue_reveal() {
+	$asset_file = plugin_dir_path( __FILE__ ) . 'build/rive-spline-block/reveal.asset.php';
+
+	if ( ! file_exists( $asset_file ) ) {
+		return;
+	}
+
+	$asset = include $asset_file;
+
+	wp_enqueue_script(
+		'rsb-reveal',
+		plugins_url( 'build/rive-spline-block/reveal.js', __FILE__ ),
+		$asset['dependencies'],
+		$asset['version'],
+		true
+	);
+
+	// The CSS is bundled into a sibling file by wp-scripts.
+	$css_path = plugin_dir_path( __FILE__ ) . 'build/rive-spline-block/reveal.css';
+	if ( file_exists( $css_path ) ) {
+		wp_enqueue_style(
+			'rsb-reveal',
+			plugins_url( 'build/rive-spline-block/reveal.css', __FILE__ ),
+			array(),
+			$asset['version']
+		);
+	}
+}
+add_action( 'wp_enqueue_scripts', 'rive_spline_block_enqueue_reveal' );

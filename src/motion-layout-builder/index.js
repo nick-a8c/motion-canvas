@@ -3,6 +3,7 @@ import { PluginSidebar } from '@wordpress/editor';
 import {
 	PanelBody,
 	RangeControl,
+	SelectControl,
 	Dropdown,
 	Button,
 	MenuGroup,
@@ -10,7 +11,7 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { useState, useEffect } from '@wordpress/element';
-import { useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { createBlock } from '@wordpress/blocks';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
@@ -33,6 +34,32 @@ const CELL_TYPES = [
 	{ value: 'heading', label: __( 'Heading', 'rive-spline-block' ) },
 	{ value: 'image', label: __( 'Image', 'rive-spline-block' ) },
 ];
+
+const REVEAL_STYLE_OPTIONS = [
+	{ label: __( 'None', 'rive-spline-block' ), value: 'none' },
+	{ label: __( 'Fade', 'rive-spline-block' ), value: 'fade' },
+	{ label: __( 'Fade up', 'rive-spline-block' ), value: 'fade-up' },
+	{ label: __( 'Zoom', 'rive-spline-block' ), value: 'zoom' },
+	{ label: __( 'Blur', 'rive-spline-block' ), value: 'blur' },
+	{ label: __( 'Slide in', 'rive-spline-block' ), value: 'slide' },
+];
+
+const REVEAL_CADENCE_OPTIONS = [
+	{ label: __( 'Together', 'rive-spline-block' ), value: 'together' },
+	{ label: __( 'By row', 'rive-spline-block' ), value: 'row' },
+	{ label: __( 'By cell', 'rive-spline-block' ), value: 'cell' },
+	{ label: __( 'By column', 'rive-spline-block' ), value: 'column' },
+];
+
+const REVEAL_SPEED_OPTIONS = [
+	{ label: __( 'Snappy', 'rive-spline-block' ), value: 'snappy' },
+	{ label: __( 'Smooth', 'rive-spline-block' ), value: 'smooth' },
+	{ label: __( 'Slow & cinematic', 'rive-spline-block' ), value: 'cinematic' },
+];
+
+// The marker class we put on every layout the builder inserts. Used to
+// recognize "our" Groups vs unrelated Group blocks the user added themselves.
+const BUILDER_MARKER_CLASS = 'rsb-builder-layout';
 
 const getCellLabel = ( type ) => {
 	const match = CELL_TYPES.find( ( option ) => option.value === type );
@@ -85,10 +112,38 @@ const createCellBlock = ( cell ) => {
 	}
 };
 
-// Build the full block tree. Wraps everything in a single core/group so the
-// user can move/style/delete the whole layout as one unit. Each row is a
-// core/columns block with vertically-centered columns.
-const buildLayoutBlocks = ( rows, columns, cells ) => {
+// Compose the className string for a Group based on reveal config.
+// Always includes BUILDER_MARKER_CLASS so we can find it later.
+// Reveal classes are only added when style !== 'none'.
+const buildClassName = ( reveal ) => {
+	const classes = [ BUILDER_MARKER_CLASS ];
+	if ( reveal && reveal.style && reveal.style !== 'none' ) {
+		classes.push( 'rsb-reveal' );
+		classes.push( `rsb-reveal--style-${ reveal.style }` );
+		classes.push( `rsb-reveal--cadence-${ reveal.cadence }` );
+		classes.push( `rsb-reveal--speed-${ reveal.speed }` );
+	}
+	return classes.join( ' ' );
+};
+
+// Parse reveal config out of an existing className string.
+// Returns { style, cadence, speed } with sensible fallbacks.
+const parseRevealFromClassName = ( className ) => {
+	const result = { style: 'none', cadence: 'cell', speed: 'smooth' };
+	if ( ! className ) return result;
+
+	const styleMatch = className.match( /rsb-reveal--style-([\w-]+)/ );
+	const cadenceMatch = className.match( /rsb-reveal--cadence-([\w-]+)/ );
+	const speedMatch = className.match( /rsb-reveal--speed-([\w-]+)/ );
+
+	if ( styleMatch ) result.style = styleMatch[ 1 ];
+	if ( cadenceMatch ) result.cadence = cadenceMatch[ 1 ];
+	if ( speedMatch ) result.speed = speedMatch[ 1 ];
+
+	return result;
+};
+
+const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
 	const rowBlocks = [];
 
 	for ( let r = 0; r < rows; r++ ) {
@@ -117,8 +172,11 @@ const buildLayoutBlocks = ( rows, columns, cells ) => {
 		);
 	}
 
-	// Wrap everything in a Group so it lives as one layer in Document Overview.
-	const group = createBlock( 'core/group', {}, rowBlocks );
+	const groupAttributes = {
+		className: buildClassName( reveal ),
+	};
+
+	const group = createBlock( 'core/group', groupAttributes, rowBlocks );
 	return [ group ];
 };
 
@@ -128,7 +186,34 @@ const MotionLayoutBuilder = () => {
 	const [ cells, setCells ] = useState( () => buildCells( 2, 2 ) );
 	const [ notice, setNotice ] = useState( null );
 
-	const { insertBlocks } = useDispatch( blockEditorStore );
+	const [ revealStyle, setRevealStyle ] = useState( 'none' );
+	const [ revealCadence, setRevealCadence ] = useState( 'cell' );
+	const [ revealSpeed, setRevealSpeed ] = useState( 'smooth' );
+
+	const { insertBlocks, updateBlockAttributes } = useDispatch( blockEditorStore );
+
+	// Watch the currently-selected block. If it's a builder Group, we're
+	// in edit mode for that Group.
+	const selectedGroup = useSelect( ( select ) => {
+		const block = select( blockEditorStore ).getSelectedBlock();
+		if ( ! block ) return null;
+		if ( block.name !== 'core/group' ) return null;
+		const className = block.attributes?.className || '';
+		if ( ! className.includes( BUILDER_MARKER_CLASS ) ) return null;
+		return block;
+	}, [] );
+
+	const isEditMode = !! selectedGroup;
+
+	// When entering edit mode for a Group, sync the reveal dropdowns
+	// to reflect that Group's current reveal config.
+	useEffect( () => {
+		if ( ! selectedGroup ) return;
+		const parsed = parseRevealFromClassName( selectedGroup.attributes.className );
+		setRevealStyle( parsed.style );
+		setRevealCadence( parsed.cadence );
+		setRevealSpeed( parsed.speed );
+	}, [ selectedGroup?.clientId ] );
 
 	useEffect( () => {
 		setCells( ( previous ) => buildCells( rows, columns, previous ) );
@@ -142,8 +227,54 @@ const MotionLayoutBuilder = () => {
 		);
 	};
 
+	// Live-update the selected Group's className when reveal dropdowns
+	// change in edit mode.
+	const applyRevealToSelectedGroup = ( nextReveal ) => {
+		if ( ! selectedGroup ) return;
+		updateBlockAttributes( selectedGroup.clientId, {
+			className: buildClassName( nextReveal ),
+		} );
+	};
+
+	const handleRevealStyleChange = ( val ) => {
+		setRevealStyle( val );
+		if ( isEditMode ) {
+			applyRevealToSelectedGroup( {
+				style: val,
+				cadence: revealCadence,
+				speed: revealSpeed,
+			} );
+		}
+	};
+
+	const handleRevealCadenceChange = ( val ) => {
+		setRevealCadence( val );
+		if ( isEditMode ) {
+			applyRevealToSelectedGroup( {
+				style: revealStyle,
+				cadence: val,
+				speed: revealSpeed,
+			} );
+		}
+	};
+
+	const handleRevealSpeedChange = ( val ) => {
+		setRevealSpeed( val );
+		if ( isEditMode ) {
+			applyRevealToSelectedGroup( {
+				style: revealStyle,
+				cadence: revealCadence,
+				speed: val,
+			} );
+		}
+	};
+
 	const handleInsert = () => {
-		const blocks = buildLayoutBlocks( rows, columns, cells );
+		const blocks = buildLayoutBlocks( rows, columns, cells, {
+			style: revealStyle,
+			cadence: revealCadence,
+			speed: revealSpeed,
+		} );
 		insertBlocks( blocks );
 		setNotice( {
 			status: 'success',
@@ -151,15 +282,35 @@ const MotionLayoutBuilder = () => {
 		} );
 	};
 
+	const revealEnabled = revealStyle !== 'none';
+
 	return (
 		<PluginSidebar
 			name="motion-layout-builder"
 			title={ __( 'Motion Layout Builder', 'rive-spline-block' ) }
 			icon={ <MotionLayoutBuilderIcon /> }
 		>
+			{ isEditMode && (
+				<div style={ {
+					padding: '12px 16px',
+					background: '#f0f6fc',
+					borderBottom: '1px solid #c5d9ed',
+				} }>
+					<p style={ { margin: 0, fontSize: '12px', color: '#1e40af', fontWeight: 600 } }>
+						{ __( 'Editing inserted layout', 'rive-spline-block' ) }
+					</p>
+					<p style={ { margin: '4px 0 0 0', fontSize: '11px', color: '#3a5573' } }>
+						{ __(
+							'Structural changes are locked. To resize or change cells, delete the layout and insert a new one.',
+							'rive-spline-block'
+						) }
+					</p>
+				</div>
+			) }
+
 			<PanelBody
 				title={ __( 'Grid size', 'rive-spline-block' ) }
-				initialOpen={ true }
+				initialOpen={ ! isEditMode }
 			>
 				<RangeControl
 					label={ __( 'Rows', 'rive-spline-block' ) }
@@ -167,6 +318,7 @@ const MotionLayoutBuilder = () => {
 					onChange={ ( value ) => setRows( value ) }
 					min={ 1 }
 					max={ 6 }
+					disabled={ isEditMode }
 				/>
 				<RangeControl
 					label={ __( 'Columns', 'rive-spline-block' ) }
@@ -174,6 +326,7 @@ const MotionLayoutBuilder = () => {
 					onChange={ ( value ) => setColumns( value ) }
 					min={ 1 }
 					max={ 6 }
+					disabled={ isEditMode }
 				/>
 				<p style={ { marginTop: '16px', color: '#757575', fontSize: '12px' } }>
 					{ __( 'Current: ', 'rive-spline-block' ) }
@@ -186,10 +339,12 @@ const MotionLayoutBuilder = () => {
 
 			<PanelBody
 				title={ __( 'Layout preview', 'rive-spline-block' ) }
-				initialOpen={ true }
+				initialOpen={ ! isEditMode }
 			>
 				<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
-					{ __( 'Click a cell to choose its content type.', 'rive-spline-block' ) }
+					{ isEditMode
+						? __( 'Cells are locked. Edit them directly in the canvas.', 'rive-spline-block' )
+						: __( 'Click a cell to choose its content type.', 'rive-spline-block' ) }
 				</p>
 				<div
 					style={ {
@@ -199,6 +354,8 @@ const MotionLayoutBuilder = () => {
 						gap: '6px',
 						aspectRatio: `${ columns } / ${ rows }`,
 						width: '100%',
+						opacity: isEditMode ? 0.55 : 1,
+						pointerEvents: isEditMode ? 'none' : 'auto',
 					} }
 				>
 					{ cells.map( ( cell, index ) => (
@@ -210,6 +367,7 @@ const MotionLayoutBuilder = () => {
 									type="button"
 									onClick={ onToggle }
 									aria-expanded={ isOpen }
+									disabled={ isEditMode }
 									style={ {
 										background:
 											cell.type === 'empty'
@@ -233,7 +391,7 @@ const MotionLayoutBuilder = () => {
 										width: '100%',
 										height: '100%',
 										minHeight: '40px',
-										cursor: 'pointer',
+										cursor: isEditMode ? 'not-allowed' : 'pointer',
 									} }
 								>
 									{ getCellLabel( cell.type ) }
@@ -259,17 +417,19 @@ const MotionLayoutBuilder = () => {
 					) ) }
 				</div>
 
-				<div style={ { marginTop: '20px' } }>
-					<Button
-						variant="primary"
-						onClick={ handleInsert }
-						style={ { width: '100%', justifyContent: 'center' } }
-					>
-						{ __( 'Insert layout', 'rive-spline-block' ) }
-					</Button>
-				</div>
+				{ ! isEditMode && (
+					<div style={ { marginTop: '20px' } }>
+						<Button
+							variant="primary"
+							onClick={ handleInsert }
+							style={ { width: '100%', justifyContent: 'center' } }
+						>
+							{ __( 'Insert layout', 'rive-spline-block' ) }
+						</Button>
+					</div>
+				) }
 
-				{ notice && (
+				{ notice && ! isEditMode && (
 					<div style={ { marginTop: '12px' } }>
 						<Notice
 							status={ notice.status }
@@ -279,6 +439,50 @@ const MotionLayoutBuilder = () => {
 							{ notice.message }
 						</Notice>
 					</div>
+				) }
+			</PanelBody>
+
+			<PanelBody
+				title={ __( 'Scroll reveal', 'rive-spline-block' ) }
+				initialOpen={ isEditMode }
+			>
+				<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
+					{ isEditMode
+						? __( 'Adjust reveal effect for the selected layout. Changes apply live.', 'rive-spline-block' )
+						: __( 'Animate the layout into view as visitors scroll. Disabled by default.', 'rive-spline-block' ) }
+				</p>
+
+				<SelectControl
+					label={ __( 'Reveal style', 'rive-spline-block' ) }
+					value={ revealStyle }
+					options={ REVEAL_STYLE_OPTIONS }
+					onChange={ handleRevealStyleChange }
+				/>
+
+				<SelectControl
+					label={ __( 'Cadence', 'rive-spline-block' ) }
+					value={ revealCadence }
+					options={ REVEAL_CADENCE_OPTIONS }
+					onChange={ handleRevealCadenceChange }
+					disabled={ ! revealEnabled }
+					help={ __( 'How cells appear relative to each other.', 'rive-spline-block' ) }
+				/>
+
+				<SelectControl
+					label={ __( 'Speed', 'rive-spline-block' ) }
+					value={ revealSpeed }
+					options={ REVEAL_SPEED_OPTIONS }
+					onChange={ handleRevealSpeedChange }
+					disabled={ ! revealEnabled }
+				/>
+
+				{ revealEnabled && ! isEditMode && (
+					<p style={ { marginTop: '12px', color: '#757575', fontSize: '11px', fontStyle: 'italic' } }>
+						{ __(
+							'Reveal will run once when the layout enters view. Visitors who prefer reduced motion will see content appear instantly.',
+							'rive-spline-block'
+						) }
+					</p>
 				) }
 			</PanelBody>
 		</PluginSidebar>
