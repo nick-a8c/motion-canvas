@@ -47,3 +47,24 @@ function rive_spline_block_fix_mime_check( $data, $file, $filename, $mimes ) {
     return $data;
 }
 add_filter( 'wp_check_filetype_and_ext', 'rive_spline_block_fix_mime_check', 10, 4 );
+/**
+ * Enqueue the Motion Layout Builder panel in the block editor.
+ */
+function rive_spline_block_enqueue_layout_builder() {
+	$asset_file = plugin_dir_path( __FILE__ ) . 'build/motion-layout-builder/index.asset.php';
+
+	if ( ! file_exists( $asset_file ) ) {
+		return;
+	}
+
+	$asset = include $asset_file;
+
+	wp_enqueue_script(
+		'motion-layout-builder',
+		plugins_url( 'build/motion-layout-builder/index.js', __FILE__ ),
+		$asset['dependencies'],
+		$asset['version'],
+		true
+	);
+}
+add_action( 'enqueue_block_editor_assets', 'rive_spline_block_enqueue_layout_builder' );
