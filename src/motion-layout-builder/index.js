@@ -1,7 +1,7 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginSidebar } from '@wordpress/editor';
 import { PanelBody, RangeControl } from '@wordpress/components';
-import { useState } from '@wordpress/element';
+import { useState, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 const MotionLayoutBuilderIcon = () => (
@@ -13,9 +13,26 @@ const MotionLayoutBuilderIcon = () => (
 	</svg>
 );
 
+// Build an array of length rows*columns, preserving existing cell values
+// when the grid size changes.
+const buildCells = ( rows, columns, previous = [] ) => {
+	const total = rows * columns;
+	const next = [];
+	for ( let i = 0; i < total; i++ ) {
+		next.push( previous[ i ] || { type: 'empty' } );
+	}
+	return next;
+};
+
 const MotionLayoutBuilder = () => {
 	const [ rows, setRows ] = useState( 2 );
 	const [ columns, setColumns ] = useState( 2 );
+	const [ cells, setCells ] = useState( () => buildCells( 2, 2 ) );
+
+	// Resize the cells array whenever rows or columns change.
+	useEffect( () => {
+		setCells( ( previous ) => buildCells( rows, columns, previous ) );
+	}, [ rows, columns ] );
 
 	return (
 		<PluginSidebar
@@ -48,6 +65,45 @@ const MotionLayoutBuilder = () => {
 					{ rows * columns }
 					{ __( ' cells)', 'rive-spline-block' ) }
 				</p>
+			</PanelBody>
+
+			<PanelBody
+				title={ __( 'Layout preview', 'rive-spline-block' ) }
+				initialOpen={ true }
+			>
+				<div
+					style={ {
+						display: 'grid',
+						gridTemplateColumns: `repeat(${ columns }, 1fr)`,
+						gridTemplateRows: `repeat(${ rows }, 1fr)`,
+						gap: '6px',
+						aspectRatio: `${ columns } / ${ rows }`,
+						width: '100%',
+					} }
+				>
+					{ cells.map( ( cell, index ) => (
+						<div
+							key={ index }
+							style={ {
+								background: '#f0f0f0',
+								border: '1px dashed #c3c4c7',
+								borderRadius: '2px',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								fontSize: '11px',
+								color: '#757575',
+								textAlign: 'center',
+								padding: '4px',
+								minHeight: '40px',
+							} }
+						>
+							{ cell.type === 'empty'
+								? __( 'Empty', 'rive-spline-block' )
+								: cell.type }
+						</div>
+					) ) }
+				</div>
 			</PanelBody>
 		</PluginSidebar>
 	);
