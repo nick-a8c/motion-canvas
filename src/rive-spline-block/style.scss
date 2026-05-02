@@ -23,3 +23,12 @@
         max-width: none;
     }
 }
+/**
+ * Layout builder polish — frontend version.
+ * Match the editor: center the block inside its column, fill the width.
+ */
+.wp-block-column > .wp-block-create-block-rive-spline-block {
+	margin-left: auto;
+	margin-right: auto;
+	width: 100%;
+}

@@ -5,3 +5,22 @@
     padding: 0 !important;
     margin: 0 !important;
 }
+/**
+ * Layout builder polish — when the block sits inside a core/column,
+ * give it room to breathe and center it nicely.
+ */
+
+// Center the block inside its parent column in the editor.
+.wp-block-column > .wp-block-create-block-rive-spline-block {
+	margin-left: auto;
+	margin-right: auto;
+	width: 100%;
+}
+
+// When the block has no file uploaded yet, the editor placeholder
+// should feel like a real slot — not a collapsed sliver.
+.wp-block-create-block-rive-spline-block {
+	.components-placeholder {
+		min-height: 180px;
+	}
+}

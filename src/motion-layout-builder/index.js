@@ -49,35 +49,42 @@ const buildCells = (rows, columns, previous = []) => {
 };
 
 // Turn a cell descriptor into a real Gutenberg block.
-const createCellBlock = (cell) => {
-	switch (cell.type) {
+const createCellBlock = ( cell ) => {
+	switch ( cell.type ) {
 		case 'rive':
-			return createBlock('create-block/rive-spline-block', {
+			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'rive',
-			});
+				aspectRatio: '1/1',
+			} );
 		case 'spline':
-			return createBlock('create-block/rive-spline-block', {
+			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'spline',
-			});
+				aspectRatio: '1/1',
+			} );
 		case 'lottie':
-			return createBlock('create-block/rive-spline-block', {
+			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'lottie',
-			});
+				aspectRatio: '1/1',
+			} );
 		case 'paragraph':
-			return createBlock('core/paragraph', {});
+			return createBlock( 'core/paragraph', {
+				placeholder: __(
+					'Drop a thought here. Two short sentences, just enough to balance the motion next door.',
+					'rive-spline-block'
+				),
+			} );
 		case 'heading':
-			return createBlock('core/heading', { level: 2 });
+			return createBlock( 'core/heading', {
+				level: 2,
+				placeholder: __( 'Your headline here', 'rive-spline-block' ),
+			} );
 		case 'image':
-			return createBlock('core/image', {});
+			return createBlock( 'core/image', {} );
 		case 'empty':
 		default:
-			// An empty cell still needs *something* inside the column,
-			// otherwise the column collapses. A blank paragraph is the
-			// gentlest placeholder.
-			return createBlock('core/paragraph', {});
+			return createBlock( 'core/paragraph', {} );
 	}
 };
-
 // Build the full block tree: an outer Columns block per row, with a
 // Column block per cell, each wrapping the chosen cell block.
 const buildLayoutBlocks = (rows, columns, cells) => {
