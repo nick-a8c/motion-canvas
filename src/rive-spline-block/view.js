@@ -26,6 +26,40 @@ function registerForAudioUnlock( riveInstance ) {
     document.addEventListener( 'touchstart', unlockAll );
 }
 
+// Render a friendly fallback inside the wrapper when a Spline scene
+// can't be loaded. Replaces whatever is currently in the wrapper.
+function showSplineFallback( wrapper, splineUrl ) {
+    wrapper.innerHTML = '';
+    wrapper.style.background = '#1a1a2e';
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.padding = '20px';
+    wrapper.style.gap = '8px';
+    wrapper.style.textAlign = 'center';
+
+    const icon = document.createElement( 'div' );
+    icon.style.fontSize = '24px';
+    icon.style.color = '#8888ff';
+    icon.textContent = '⚠';
+    wrapper.appendChild( icon );
+
+    const title = document.createElement( 'p' );
+    title.style.color = '#ccccdd';
+    title.style.fontSize = '14px';
+    title.style.margin = '0';
+    title.textContent = 'This Spline scene couldn\'t be loaded.';
+    wrapper.appendChild( title );
+
+    const hint = document.createElement( 'p' );
+    hint.style.color = '#8888aa';
+    hint.style.fontSize = '12px';
+    hint.style.margin = '0';
+    hint.textContent = 'The link may be wrong, private, or no longer available.';
+    wrapper.appendChild( hint );
+}
+
 document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach( ( block ) => {
     const fileUrl = block.dataset.fileUrl;
     const animationType = block.dataset.animationType;
@@ -101,6 +135,27 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
         iframe.style.border = 'none';
         iframe.allow = 'autoplay';
         wrapper.appendChild( iframe );
+
+        // Watch for failed loads. We can't peek inside the iframe (cross-origin),
+        // but we can check whether it loaded at all within a reasonable window.
+        let loaded = false;
+
+        iframe.addEventListener( 'load', () => {
+            loaded = true;
+        } );
+
+        iframe.addEventListener( 'error', () => {
+            showSplineFallback( wrapper, splineUrl );
+        } );
+
+        // If the iframe hasn't fired 'load' within 8 seconds, assume it's
+        // broken and show the fallback. 8s is generous — Spline scenes are
+        // usually responsive within 2-3s on a normal connection.
+        setTimeout( () => {
+            if ( ! loaded ) {
+                showSplineFallback( wrapper, splineUrl );
+            }
+        }, 8000 );
     }
 
     if ( animationType === 'lottie' ) {

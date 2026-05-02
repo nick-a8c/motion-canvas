@@ -1,12 +1,73 @@
 import { __ } from '@wordpress/i18n';
 import { useBlockProps, InspectorControls, MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
-import { PanelBody, SelectControl, Button, TextControl, ToggleControl, RangeControl } from '@wordpress/components';
-import { useEffect, useRef } from '@wordpress/element';
+import { PanelBody, SelectControl, Button, TextControl, ToggleControl, RangeControl, Notice } from '@wordpress/components';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import './editor.scss';
 
+// Validate a Spline URL. Returns either { ok: true, url } with a cleaned URL,
+// or { ok: false, message } with a human-friendly error.
+const validateSplineUrl = (raw) => {
+	const trimmed = (raw || '').trim();
+
+	if (!trimmed) {
+		return { ok: false, message: __('Please paste a URL.', 'rive-spline-block') };
+	}
+
+	// Reject pasted iframe embed code.
+	if (/<iframe|<\/iframe>/i.test(trimmed)) {
+		return {
+			ok: false,
+			message: __(
+				'Looks like you pasted embed code. Use the public viewer URL instead — the one that starts with https://my.spline.design/',
+				'rive-spline-block'
+			),
+		};
+	}
+
+	// Auto-prepend https:// if the user pasted a bare domain.
+	const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+	// Try parsing it as a real URL.
+	let parsed;
+	try {
+		parsed = new URL(withProtocol);
+	} catch (e) {
+		return {
+			ok: false,
+			message: __('That doesn\'t look like a valid URL.', 'rive-spline-block'),
+		};
+	}
+
+	// Must be HTTPS for browsers to embed it without warnings.
+	if (parsed.protocol !== 'https:') {
+		return {
+			ok: false,
+			message: __('Spline URLs must start with https://', 'rive-spline-block'),
+		};
+	}
+
+	// Must be a spline.design domain.
+	if (!/(^|\.)spline\.design$/i.test(parsed.hostname)) {
+		return {
+			ok: false,
+			message: __(
+				'That doesn\'t look like a Spline URL. It should be on spline.design.',
+				'rive-spline-block'
+			),
+		};
+	}
+
+	return { ok: true, url: withProtocol };
+};
+
 export default function Edit({ attributes, setAttributes }) {
-	const { fileUrl, splineUrl, animationType, aspectRatio, maxWidth, loop, autoplay, playbackSpeed, trigger } = attributes; const lottieContainerRef = useRef(null);
+	const { fileUrl, splineUrl, animationType, aspectRatio, maxWidth, loop, autoplay, playbackSpeed, trigger } = attributes;
+	const lottieContainerRef = useRef(null);
 	const blockProps = useBlockProps();
+
+	// Local state for the inline Spline URL input + error message.
+	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
+	const [splineError, setSplineError] = useState(null);
 
 	useEffect(() => {
 		if (!fileUrl) return;
@@ -31,12 +92,32 @@ export default function Edit({ attributes, setAttributes }) {
 
 	const hasContent = animationType === 'spline' ? !!splineUrl : !!fileUrl;
 
-	// Wrapper style: aspect-ratio if set, otherwise let content size itself.
-	// Falls back to 16/9 for placeholder so it doesn't collapse.
 	const wrapperStyle = {
 		width: '100%',
 		aspectRatio: aspectRatio || '16 / 9',
 		position: 'relative',
+	};
+
+	const uploadLabel = () => {
+		switch (animationType) {
+			case 'rive':
+				return __('Upload Rive file (.riv)', 'rive-spline-block');
+			case 'lottie':
+				return __('Upload Lottie file (.json)', 'rive-spline-block');
+			default:
+				return __('Upload Animation File', 'rive-spline-block');
+		}
+	};
+
+	const handleSplineSubmit = () => {
+		const result = validateSplineUrl(splineUrlDraft);
+		if (!result.ok) {
+			setSplineError(result.message);
+			return;
+		}
+		setSplineError(null);
+		setSplineUrlDraft(result.url);
+		setAttributes({ splineUrl: result.url });
 	};
 
 	return (
@@ -146,17 +227,60 @@ export default function Edit({ attributes, setAttributes }) {
 						justifyContent: 'center',
 						gap: '12px',
 						background: '#1a1a2e',
+						padding: '20px',
 					}}>
 						<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<circle cx="24" cy="24" r="24" fill="#333355" />
 							<text x="24" y="30" textAnchor="middle" fontSize="20" fill="#8888ff">✦</text>
 						</svg>
 						<p style={{ color: '#8888aa', fontSize: '13px', margin: 0, textAlign: 'center' }}>
-							{__('Upload a Rive, Spline, or Lottie file', 'rive-spline-block')}
+							{animationType === 'spline'
+								? __('Paste your Spline public viewer URL', 'rive-spline-block')
+								: __('Add your animation file', 'rive-spline-block')}
 						</p>
-						<p style={{ color: '#555577', fontSize: '11px', margin: 0, textAlign: 'center' }}>
-							{__('Use the settings panel →', 'rive-spline-block')}
-						</p>
+
+						{animationType === 'spline' ? (
+							<div style={{ width: '100%', maxWidth: '320px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+								<TextControl
+									value={splineUrlDraft}
+									onChange={(val) => {
+										setSplineUrlDraft(val);
+										if (splineError) setSplineError(null);
+									}}
+									placeholder="https://my.spline.design/..."
+									help={__('Use the public viewer URL, not the embed code.', 'rive-spline-block')}
+									__nextHasNoMarginBottom
+								/>
+								<Button
+									variant="primary"
+									disabled={!splineUrlDraft.trim()}
+									onClick={handleSplineSubmit}
+									style={{ justifyContent: 'center' }}
+								>
+									{__('Use this URL', 'rive-spline-block')}
+								</Button>
+								{splineError && (
+									<Notice
+										status="error"
+										isDismissible={false}
+									>
+										{splineError}
+									</Notice>
+								)}
+							</div>
+						) : (
+							<MediaUploadCheck>
+								<MediaUpload
+									onSelect={(media) => setAttributes({ fileUrl: media.url })}
+									allowedTypes={['application/json', 'application/octet-stream']}
+									render={({ open }) => (
+										<Button variant="primary" onClick={open}>
+											{uploadLabel()}
+										</Button>
+									)}
+								/>
+							</MediaUploadCheck>
+						)}
 					</div>
 				) : animationType === 'lottie' ? (
 					<div ref={lottieContainerRef} style={wrapperStyle} />
