@@ -48,9 +48,18 @@
             "type": "string",
             "default": "autoplay"
         },
+        "revealStyle": {
+            "type": "string",
+            "default": "none"
+        },
+        "revealSpeed": {
+            "type": "string",
+            "default": "smooth"
+        },
         "align": {
             "type": "string"
         }
+        
     },
     "textdomain": "rive-spline-block",
     "editorScript": "file:./index.js",

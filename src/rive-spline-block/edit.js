@@ -27,6 +27,21 @@ const TYPE_OPTIONS = [
 	{ label: 'Lottie (JSON)', value: 'lottie' },
 ];
 
+const REVEAL_STYLE_OPTIONS = [
+	{ label: 'None', value: 'none' },
+	{ label: 'Fade', value: 'fade' },
+	{ label: 'Fade up', value: 'fade-up' },
+	{ label: 'Zoom', value: 'zoom' },
+	{ label: 'Blur', value: 'blur' },
+	{ label: 'Slide in', value: 'slide' },
+];
+
+const REVEAL_SPEED_OPTIONS = [
+	{ label: 'Snappy', value: 'snappy' },
+	{ label: 'Smooth', value: 'smooth' },
+	{ label: 'Slow & cinematic', value: 'cinematic' },
+];
+
 const getTypeLabel = ( value ) => {
 	const match = TYPE_OPTIONS.find( ( opt ) => opt.value === value );
 	return match ? match.label : value;
@@ -82,14 +97,24 @@ const validateSplineUrl = (raw) => {
 };
 
 export default function Edit({ attributes, setAttributes }) {
-	const { fileUrl, splineUrl, animationType, aspectRatio, maxWidth, loop, autoplay, playbackSpeed, trigger } = attributes;
+	const {
+		fileUrl,
+		splineUrl,
+		animationType,
+		aspectRatio,
+		maxWidth,
+		loop,
+		autoplay,
+		playbackSpeed,
+		trigger,
+		revealStyle,
+		revealSpeed,
+	} = attributes;
 	const lottieContainerRef = useRef(null);
 	const blockProps = useBlockProps();
 
 	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
 	const [splineError, setSplineError] = useState(null);
-
-	// State for the format-switch confirmation modal.
 	const [pendingFormatSwitch, setPendingFormatSwitch] = useState(null);
 
 	useEffect(() => {
@@ -148,26 +173,19 @@ export default function Edit({ attributes, setAttributes }) {
 		setSplineError(null);
 	};
 
-	// Called when the user picks a different format from the toolbar
-	// dropdown WHILE a file is loaded. Stage the change for confirmation.
 	const requestToolbarFormatChange = ( newType ) => {
 		if ( newType === animationType ) return;
 		if ( ! hasContent ) {
-			// No file loaded — just switch directly.
 			setAttributes( { animationType: newType } );
 			return;
 		}
 		setPendingFormatSwitch( newType );
 	};
 
-	// User confirmed the destructive switch. Clear the appropriate file
-	// attribute and change the type. The block falls back to the empty
-	// placeholder for the new format.
 	const confirmFormatSwitch = () => {
 		const newType = pendingFormatSwitch;
 		const updates = { animationType: newType };
 
-		// Clear whichever file attribute applies to the OLD format.
 		if ( animationType === 'spline' ) {
 			updates.splineUrl = '';
 			setSplineUrlDraft( '' );
@@ -184,13 +202,13 @@ export default function Edit({ attributes, setAttributes }) {
 		setPendingFormatSwitch( null );
 	};
 
-	// Build the toolbar dropdown's items dynamically so the active type
-	// shows a checkmark.
 	const toolbarFormatControls = TYPE_OPTIONS.map( ( option ) => ( {
 		title: option.label,
 		isActive: animationType === option.value,
 		onClick: () => requestToolbarFormatChange( option.value ),
 	} ) );
+
+	const revealEnabled = revealStyle && revealStyle !== 'none';
 
 	return (
 		<>
@@ -291,6 +309,42 @@ export default function Edit({ attributes, setAttributes }) {
 					{fileUrl && animationType !== 'spline' && (
 						<p style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '11px' }}>
 							{fileUrl}
+						</p>
+					)}
+				</PanelBody>
+
+				<PanelBody
+					title={__('Scroll reveal', 'rive-spline-block')}
+					initialOpen={false}
+				>
+					<p style={{ marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' }}>
+						{__(
+							'Animate this block into view as visitors scroll. Disabled by default.',
+							'rive-spline-block'
+						)}
+					</p>
+
+					<SelectControl
+						label={__('Reveal style', 'rive-spline-block')}
+						value={revealStyle || 'none'}
+						options={REVEAL_STYLE_OPTIONS}
+						onChange={(val) => setAttributes({ revealStyle: val })}
+					/>
+
+					<SelectControl
+						label={__('Speed', 'rive-spline-block')}
+						value={revealSpeed || 'smooth'}
+						options={REVEAL_SPEED_OPTIONS}
+						onChange={(val) => setAttributes({ revealSpeed: val })}
+						disabled={!revealEnabled}
+					/>
+
+					{revealEnabled && (
+						<p style={{ marginTop: '12px', color: '#757575', fontSize: '11px', fontStyle: 'italic' }}>
+							{__(
+								'Reveal runs once when the block enters view. Visitors who prefer reduced motion will see content appear instantly.',
+								'rive-spline-block'
+							)}
 						</p>
 					)}
 				</PanelBody>
