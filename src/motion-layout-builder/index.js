@@ -25,30 +25,29 @@ const MotionLayoutBuilderIcon = () => (
 );
 
 const CELL_TYPES = [
-	{ value: 'empty', label: __('Empty', 'rive-spline-block') },
-	{ value: 'rive', label: __('Rive', 'rive-spline-block') },
-	{ value: 'spline', label: __('Spline', 'rive-spline-block') },
-	{ value: 'lottie', label: __('Lottie', 'rive-spline-block') },
-	{ value: 'paragraph', label: __('Paragraph', 'rive-spline-block') },
-	{ value: 'heading', label: __('Heading', 'rive-spline-block') },
-	{ value: 'image', label: __('Image', 'rive-spline-block') },
+	{ value: 'empty', label: __( 'Empty', 'rive-spline-block' ) },
+	{ value: 'rive', label: __( 'Rive', 'rive-spline-block' ) },
+	{ value: 'spline', label: __( 'Spline', 'rive-spline-block' ) },
+	{ value: 'lottie', label: __( 'Lottie', 'rive-spline-block' ) },
+	{ value: 'paragraph', label: __( 'Paragraph', 'rive-spline-block' ) },
+	{ value: 'heading', label: __( 'Heading', 'rive-spline-block' ) },
+	{ value: 'image', label: __( 'Image', 'rive-spline-block' ) },
 ];
 
-const getCellLabel = (type) => {
-	const match = CELL_TYPES.find((option) => option.value === type);
+const getCellLabel = ( type ) => {
+	const match = CELL_TYPES.find( ( option ) => option.value === type );
 	return match ? match.label : type;
 };
 
-const buildCells = (rows, columns, previous = []) => {
+const buildCells = ( rows, columns, previous = [] ) => {
 	const total = rows * columns;
 	const next = [];
-	for (let i = 0; i < total; i++) {
-		next.push(previous[i] || { type: 'empty' });
+	for ( let i = 0; i < total; i++ ) {
+		next.push( previous[ i ] || { type: 'empty' } );
 	}
 	return next;
 };
 
-// Turn a cell descriptor into a real Gutenberg block.
 const createCellBlock = ( cell ) => {
 	switch ( cell.type ) {
 		case 'rive':
@@ -85,121 +84,133 @@ const createCellBlock = ( cell ) => {
 			return createBlock( 'core/paragraph', {} );
 	}
 };
-// Build the full block tree: an outer Columns block per row, with a
-// Column block per cell, each wrapping the chosen cell block.
-const buildLayoutBlocks = (rows, columns, cells) => {
+
+// Build the full block tree. Wraps everything in a single core/group so the
+// user can move/style/delete the whole layout as one unit. Each row is a
+// core/columns block with vertically-centered columns.
+const buildLayoutBlocks = ( rows, columns, cells ) => {
 	const rowBlocks = [];
 
-	for (let r = 0; r < rows; r++) {
+	for ( let r = 0; r < rows; r++ ) {
 		const columnBlocks = [];
 
-		for (let c = 0; c < columns; c++) {
+		for ( let c = 0; c < columns; c++ ) {
 			const cellIndex = r * columns + c;
-			const cell = cells[cellIndex];
-			const innerBlock = createCellBlock(cell);
+			const cell = cells[ cellIndex ];
+			const innerBlock = createCellBlock( cell );
 
 			columnBlocks.push(
-				createBlock('core/column', {}, [innerBlock])
+				createBlock(
+					'core/column',
+					{ verticalAlignment: 'center' },
+					[ innerBlock ]
+				)
 			);
 		}
 
 		rowBlocks.push(
-			createBlock('core/columns', {}, columnBlocks)
+			createBlock(
+				'core/columns',
+				{ verticalAlignment: 'center' },
+				columnBlocks
+			)
 		);
 	}
 
-	return rowBlocks;
+	// Wrap everything in a Group so it lives as one layer in Document Overview.
+	const group = createBlock( 'core/group', {}, rowBlocks );
+	return [ group ];
 };
 
 const MotionLayoutBuilder = () => {
-	const [rows, setRows] = useState(2);
-	const [columns, setColumns] = useState(2);
-	const [cells, setCells] = useState(() => buildCells(2, 2));
-	const [notice, setNotice] = useState(null);
+	const [ rows, setRows ] = useState( 2 );
+	const [ columns, setColumns ] = useState( 2 );
+	const [ cells, setCells ] = useState( () => buildCells( 2, 2 ) );
+	const [ notice, setNotice ] = useState( null );
 
-	const { insertBlocks } = useDispatch(blockEditorStore);
+	const { insertBlocks } = useDispatch( blockEditorStore );
 
-	useEffect(() => {
-		setCells((previous) => buildCells(rows, columns, previous));
-	}, [rows, columns]);
+	useEffect( () => {
+		setCells( ( previous ) => buildCells( rows, columns, previous ) );
+	}, [ rows, columns ] );
 
-	const updateCellType = (index, newType) => {
-		setCells((previous) =>
-			previous.map((cell, i) =>
+	const updateCellType = ( index, newType ) => {
+		setCells( ( previous ) =>
+			previous.map( ( cell, i ) =>
 				i === index ? { ...cell, type: newType } : cell
 			)
 		);
 	};
 
 	const handleInsert = () => {
-		const blocks = buildLayoutBlocks(rows, columns, cells);
-		insertBlocks(blocks);
-		setNotice({
+		const blocks = buildLayoutBlocks( rows, columns, cells );
+		insertBlocks( blocks );
+		setNotice( {
 			status: 'success',
-			message: __('Layout inserted.', 'rive-spline-block'),
-		});
+			message: __( 'Layout inserted.', 'rive-spline-block' ),
+		} );
 	};
 
 	return (
 		<PluginSidebar
 			name="motion-layout-builder"
-			title={__('Motion Layout Builder', 'rive-spline-block')}
-			icon={<MotionLayoutBuilderIcon />}
+			title={ __( 'Motion Layout Builder', 'rive-spline-block' ) }
+			icon={ <MotionLayoutBuilderIcon /> }
 		>
 			<PanelBody
-				title={__('Grid size', 'rive-spline-block')}
-				initialOpen={true}
+				title={ __( 'Grid size', 'rive-spline-block' ) }
+				initialOpen={ true }
 			>
 				<RangeControl
-					label={__('Rows', 'rive-spline-block')}
-					value={rows}
-					onChange={(value) => setRows(value)}
-					min={1}
-					max={6}
+					label={ __( 'Rows', 'rive-spline-block' ) }
+					value={ rows }
+					onChange={ ( value ) => setRows( value ) }
+					min={ 1 }
+					max={ 6 }
 				/>
 				<RangeControl
-					label={__('Columns', 'rive-spline-block')}
-					value={columns}
-					onChange={(value) => setColumns(value)}
-					min={1}
-					max={6}
+					label={ __( 'Columns', 'rive-spline-block' ) }
+					value={ columns }
+					onChange={ ( value ) => setColumns( value ) }
+					min={ 1 }
+					max={ 6 }
 				/>
-				<p style={{ marginTop: '16px', color: '#757575', fontSize: '12px' }}>
-					{__('Current: ', 'rive-spline-block')}
-					{rows} × {columns}
-					{__(' (', 'rive-spline-block')}
-					{rows * columns}
-					{__(' cells)', 'rive-spline-block')}
+				<p style={ { marginTop: '16px', color: '#757575', fontSize: '12px' } }>
+					{ __( 'Current: ', 'rive-spline-block' ) }
+					{ rows } × { columns }
+					{ __( ' (', 'rive-spline-block' ) }
+					{ rows * columns }
+					{ __( ' cells)', 'rive-spline-block' ) }
 				</p>
 			</PanelBody>
 
 			<PanelBody
-				title={__('Layout preview', 'rive-spline-block')}
-				initialOpen={true}
+				title={ __( 'Layout preview', 'rive-spline-block' ) }
+				initialOpen={ true }
 			>
-				<p style={{ marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' }}>
-					{__('Click a cell to choose its content type.', 'rive-spline-block')}
+				<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
+					{ __( 'Click a cell to choose its content type.', 'rive-spline-block' ) }
 				</p>
 				<div
-					style={{
+					style={ {
 						display: 'grid',
-						gridTemplateColumns: `repeat(${columns}, 1fr)`,
-						gridTemplateRows: `repeat(${rows}, 1fr)`,
+						gridTemplateColumns: `repeat(${ columns }, 1fr)`,
+						gridTemplateRows: `repeat(${ rows }, 1fr)`,
 						gap: '6px',
-						aspectRatio: `${columns} / ${rows}`,
+						aspectRatio: `${ columns } / ${ rows }`,
 						width: '100%',
-					}}
+					} }
 				>
-					{cells.map((cell, index) => (
+					{ cells.map( ( cell, index ) => (
 						<Dropdown
-							key={index}
-							popoverProps={{ placement: 'bottom-start' }}
-							renderToggle={({ isOpen, onToggle }) => (
+							key={ index }
+							popoverProps={ { placement: 'bottom-start' } }
+							renderToggle={ ( { isOpen, onToggle } ) => (
 								<button
 									type="button"
-									onClick={onToggle}
-									aria-expanded={isOpen}
-									style={{
+									onClick={ onToggle }
+									aria-expanded={ isOpen }
+									style={ {
 										background:
 											cell.type === 'empty'
 												? '#f0f0f0'
@@ -223,57 +234,57 @@ const MotionLayoutBuilder = () => {
 										height: '100%',
 										minHeight: '40px',
 										cursor: 'pointer',
-									}}
+									} }
 								>
-									{getCellLabel(cell.type)}
+									{ getCellLabel( cell.type ) }
 								</button>
-							)}
-							renderContent={({ onClose }) => (
+							) }
+							renderContent={ ( { onClose } ) => (
 								<MenuGroup>
-									{CELL_TYPES.map((option) => (
+									{ CELL_TYPES.map( ( option ) => (
 										<MenuItem
-											key={option.value}
-											onClick={() => {
-												updateCellType(index, option.value);
+											key={ option.value }
+											onClick={ () => {
+												updateCellType( index, option.value );
 												onClose();
-											}}
-											isSelected={cell.type === option.value}
+											} }
+											isSelected={ cell.type === option.value }
 										>
-											{option.label}
+											{ option.label }
 										</MenuItem>
-									))}
+									) ) }
 								</MenuGroup>
-							)}
+							) }
 						/>
-					))}
+					) ) }
 				</div>
 
-				<div style={{ marginTop: '20px' }}>
+				<div style={ { marginTop: '20px' } }>
 					<Button
 						variant="primary"
-						onClick={handleInsert}
-						style={{ width: '100%', justifyContent: 'center' }}
+						onClick={ handleInsert }
+						style={ { width: '100%', justifyContent: 'center' } }
 					>
-						{__('Insert layout', 'rive-spline-block')}
+						{ __( 'Insert layout', 'rive-spline-block' ) }
 					</Button>
 				</div>
 
-				{notice && (
-					<div style={{ marginTop: '12px' }}>
+				{ notice && (
+					<div style={ { marginTop: '12px' } }>
 						<Notice
-							status={notice.status}
-							isDismissible={true}
-							onRemove={() => setNotice(null)}
+							status={ notice.status }
+							isDismissible={ true }
+							onRemove={ () => setNotice( null ) }
 						>
-							{notice.message}
+							{ notice.message }
 						</Notice>
 					</div>
-				)}
+				) }
 			</PanelBody>
 		</PluginSidebar>
 	);
 };
 
-registerPlugin('motion-layout-builder', {
+registerPlugin( 'motion-layout-builder', {
 	render: MotionLayoutBuilder,
-});
+} );
