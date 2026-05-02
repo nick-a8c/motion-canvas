@@ -28,6 +28,10 @@
             "type": "string",
             "default": ""
         },
+        "maxWidth": {
+            "type": "number",
+            "default": 0
+        },
         "loop": {
             "type": "boolean",
             "default": true

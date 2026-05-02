@@ -1,8 +1,7 @@
 import { useBlockProps } from '@wordpress/block-editor';
 
 export default function save( { attributes } ) {
-    const { fileUrl, splineUrl, animationType, aspectRatio, loop, autoplay, playbackSpeed, trigger } = attributes;
-
+    const { fileUrl, splineUrl, animationType, aspectRatio, maxWidth, loop, autoplay, playbackSpeed, trigger } = attributes;
     const hasContent = animationType === 'spline' ? !! splineUrl : !! fileUrl;
     if ( ! hasContent ) return null;
 
@@ -15,6 +14,7 @@ export default function save( { attributes } ) {
         'data-autoplay': autoplay ? '1' : '0',
         'data-playback-speed': String( playbackSpeed ?? 1 ),
         'data-trigger': trigger || 'autoplay',
+        style: maxWidth ? { maxWidth: `${ maxWidth }px` } : undefined,
     } );
 
     return <div { ...blockProps } />;

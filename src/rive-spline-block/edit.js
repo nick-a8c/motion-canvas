@@ -5,8 +5,7 @@ import { useEffect, useRef } from '@wordpress/element';
 import './editor.scss';
 
 export default function Edit({ attributes, setAttributes }) {
-	const { fileUrl, splineUrl, animationType, aspectRatio, loop, autoplay, playbackSpeed, trigger } = attributes;
-	const lottieContainerRef = useRef(null);
+	const { fileUrl, splineUrl, animationType, aspectRatio, maxWidth, loop, autoplay, playbackSpeed, trigger } = attributes; const lottieContainerRef = useRef(null);
 	const blockProps = useBlockProps();
 
 	useEffect(() => {
@@ -60,38 +59,52 @@ export default function Edit({ attributes, setAttributes }) {
 						value={aspectRatio || ''}
 						onChange={(val) => setAttributes({ aspectRatio: val })}
 					/>
-					<SelectControl
-						label={__('Trigger', 'rive-spline-block')}
-						help={__('When should the animation start?', 'rive-spline-block')}
-						value={trigger}
-						options={[
-							{ label: 'Autoplay (on page load)', value: 'autoplay' },
-							{ label: 'On hover', value: 'hover' },
-							{ label: 'On click', value: 'click' },
-							{ label: 'On scroll into view', value: 'scroll' },
-						]}
-						onChange={(val) => setAttributes({ trigger: val })}
-					/>
-					<ToggleControl
-						label={__('Autoplay', 'rive-spline-block')}
-						help={__('Start playing automatically when the trigger fires.', 'rive-spline-block')}
-						checked={autoplay}
-						onChange={(val) => setAttributes({ autoplay: val })}
-					/>
-					<ToggleControl
-						label={__('Loop', 'rive-spline-block')}
-						help={__('Repeat the animation when it ends.', 'rive-spline-block')}
-						checked={loop}
-						onChange={(val) => setAttributes({ loop: val })}
-					/>
 					<RangeControl
-						label={__('Playback speed', 'rive-spline-block')}
-						value={playbackSpeed}
-						onChange={(val) => setAttributes({ playbackSpeed: val })}
-						min={0.25}
-						max={3}
-						step={0.25}
+						label={__('Max width (px)', 'rive-spline-block')}
+						help={__('Cap the block\'s maximum width. Leave blank to use the default (600px for centered blocks).', 'rive-spline-block')}
+						value={maxWidth}
+						onChange={(val) => setAttributes({ maxWidth: val })}
+						min={100}
+						max={1200}
+						step={10}
+						allowReset
 					/>
+					{animationType === 'lottie' && (
+						<>
+							<SelectControl
+								label={__('Trigger', 'rive-spline-block')}
+								help={__('When should the animation start?', 'rive-spline-block')}
+								value={trigger}
+								options={[
+									{ label: 'Autoplay (on page load)', value: 'autoplay' },
+									{ label: 'On hover', value: 'hover' },
+									{ label: 'On click', value: 'click' },
+									{ label: 'On scroll into view', value: 'scroll' },
+								]}
+								onChange={(val) => setAttributes({ trigger: val })}
+							/>
+							<ToggleControl
+								label={__('Autoplay', 'rive-spline-block')}
+								help={__('Start playing automatically when the trigger fires.', 'rive-spline-block')}
+								checked={autoplay}
+								onChange={(val) => setAttributes({ autoplay: val })}
+							/>
+							<ToggleControl
+								label={__('Loop', 'rive-spline-block')}
+								help={__('Repeat the animation when it ends.', 'rive-spline-block')}
+								checked={loop}
+								onChange={(val) => setAttributes({ loop: val })}
+							/>
+							<RangeControl
+								label={__('Playback speed', 'rive-spline-block')}
+								value={playbackSpeed}
+								onChange={(val) => setAttributes({ playbackSpeed: val })}
+								min={0.25}
+								max={3}
+								step={0.25}
+							/>
+						</>
+					)}
 					{animationType === 'spline' && (
 						<TextControl
 							label={__('Spline Public URL', 'rive-spline-block')}
