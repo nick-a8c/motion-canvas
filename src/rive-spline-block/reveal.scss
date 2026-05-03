@@ -1,17 +1,15 @@
 /**
- * Scroll reveal animations for builder-inserted layouts and (later)
- * standalone Rive/Spline/Lottie blocks.
+ * Scroll reveal animations for builder-inserted layouts and standalone
+ * Rive/Spline/Lottie blocks.
  *
- * Activation pattern:
- *   <div class="rsb-reveal rsb-reveal--style-fade-up rsb-reveal--cadence-cell rsb-reveal--speed-smooth">
- *     <div class="wp-block-columns">
- *       <div class="wp-block-column">...</div>
- *     </div>
- *   </div>
+ * Two activation patterns:
+ *   (1) Builder layout — wrapper holds the .rsb-reveal classes, INNER
+ *       cells get .rsb-reveal--armed/.rsb-reveal--in.
+ *   (2) Standalone block — the SAME element holds .rsb-reveal AND gets
+ *       armed/in classes added directly.
  *
- * On page load, JS adds .rsb-reveal--armed (initial state) to each animated
- * element. When the wrapper enters the viewport, JS adds .rsb-reveal--in,
- * which transitions each element to its resting state.
+ * The selectors below match both shapes via "&.rsb-reveal--armed,
+ * & .rsb-reveal--armed".
  *
  * House easing comes from Woo Motion Principles.
  */
@@ -19,7 +17,7 @@
  $rsb-easing: cubic-bezier(0.4, 0.14, 0.3, 1);
 
  .rsb-reveal {
-     // Speed presets — define both per-element duration and stagger step.
+     // Speed presets.
      &.rsb-reveal--speed-snappy {
          --rsb-duration: 300ms;
          --rsb-stagger: 80ms;
@@ -33,8 +31,9 @@
          --rsb-stagger: 300ms;
      }
  
-     // Apply transition to whichever child the JS arms.
-     .rsb-reveal--armed {
+     // Transition applies whether armed lives on self or on a descendant.
+     &.rsb-reveal--armed,
+     & .rsb-reveal--armed {
          transition:
              opacity var(--rsb-duration) #{$rsb-easing},
              transform var(--rsb-duration) #{$rsb-easing},
@@ -47,44 +46,50 @@
      // ---------------------------------------------------------------
  
      &.rsb-reveal--style-fade {
-         .rsb-reveal--armed {
+         &.rsb-reveal--armed,
+         & .rsb-reveal--armed {
              opacity: 0;
          }
      }
  
      &.rsb-reveal--style-fade-up {
-         .rsb-reveal--armed {
+         &.rsb-reveal--armed,
+         & .rsb-reveal--armed {
              opacity: 0;
              transform: translateY(24px);
          }
      }
  
      &.rsb-reveal--style-zoom {
-         .rsb-reveal--armed {
+         &.rsb-reveal--armed,
+         & .rsb-reveal--armed {
              opacity: 0;
              transform: scale(0.95);
          }
      }
  
      &.rsb-reveal--style-blur {
-         .rsb-reveal--armed {
+         &.rsb-reveal--armed,
+         & .rsb-reveal--armed {
              opacity: 0;
              filter: blur(12px);
          }
      }
  
      &.rsb-reveal--style-slide {
-         .rsb-reveal--armed {
+         &.rsb-reveal--armed,
+         & .rsb-reveal--armed {
              opacity: 0;
              transform: translateX(-32px);
          }
      }
  
      // ---------------------------------------------------------------
-     // Revealed state — same for every style: reset to defaults.
+     // Revealed state — same for every style.
      // ---------------------------------------------------------------
  
-     .rsb-reveal--armed.rsb-reveal--in {
+     &.rsb-reveal--armed.rsb-reveal--in,
+     & .rsb-reveal--armed.rsb-reveal--in {
          opacity: 1;
          transform: none;
          filter: none;
@@ -92,11 +97,11 @@
  }
  
  // ---------------------------------------------------------------
- // Reduced motion: skip animation entirely. Content appears
- // immediately in its resting state.
+ // Reduced motion: skip animation entirely.
  // ---------------------------------------------------------------
  
  @media (prefers-reduced-motion: reduce) {
+     .rsb-reveal.rsb-reveal--armed,
      .rsb-reveal .rsb-reveal--armed {
          opacity: 1 !important;
          transform: none !important;
