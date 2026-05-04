@@ -11,10 +11,16 @@
  * The selectors below match both shapes via "&.rsb-reveal--armed,
  * & .rsb-reveal--armed".
  *
- * House easing comes from Woo Motion Principles.
+ * Easing per style:
+ *   - Fade / Fade-up / Slide use the house curve from Woo Motion Principles.
+ *   - Zoom uses a softer landing — scale wants more deceleration at the end
+ *     than translate does, otherwise it feels mechanical.
+ *   - Blur shares the house curve but resolves filter faster than opacity
+ *     so the image doesn't feel muddy on the way in.
  */
 
- $rsb-easing: cubic-bezier(0.4, 0.14, 0.3, 1);
+ $rsb-easing-house: cubic-bezier(0.4, 0.14, 0.3, 1);
+ $rsb-easing-zoom:  cubic-bezier(0.2, 0.7, 0.3, 1);
 
  .rsb-reveal {
      // Speed presets.
@@ -30,28 +36,32 @@
          --rsb-duration: 1000ms;
          --rsb-stagger: 300ms;
      }
- 
-     // Transition applies whether armed lives on self or on a descendant.
+
+     // ---------------------------------------------------------------
+     // Default transition — applied unless a style overrides below.
+     // Uses house easing for opacity + transform + filter.
+     // ---------------------------------------------------------------
+
      &.rsb-reveal--armed,
      & .rsb-reveal--armed {
          transition:
-             opacity var(--rsb-duration) #{$rsb-easing},
-             transform var(--rsb-duration) #{$rsb-easing},
-             filter var(--rsb-duration) #{$rsb-easing};
+             opacity var(--rsb-duration) #{$rsb-easing-house},
+             transform var(--rsb-duration) #{$rsb-easing-house},
+             filter var(--rsb-duration) #{$rsb-easing-house};
          will-change: opacity, transform, filter;
      }
- 
+
      // ---------------------------------------------------------------
      // Initial states (armed but not yet revealed) per style
      // ---------------------------------------------------------------
- 
+
      &.rsb-reveal--style-fade {
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
              opacity: 0;
          }
      }
- 
+
      &.rsb-reveal--style-fade-up {
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
@@ -59,23 +69,34 @@
              transform: translateY(24px);
          }
      }
- 
+
      &.rsb-reveal--style-zoom {
+         // Override the default transition so transform uses the softer
+         // zoom easing. Opacity stays on the house curve.
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
+             transition:
+                 opacity var(--rsb-duration) #{$rsb-easing-house},
+                 transform var(--rsb-duration) #{$rsb-easing-zoom};
              opacity: 0;
              transform: scale(0.95);
          }
      }
- 
+
      &.rsb-reveal--style-blur {
+         // Filter resolves at 70% of the duration so the blur clears
+         // slightly ahead of the fade. Without this, the image stays
+         // muddy until the very end of the transition.
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
+             transition:
+                 opacity var(--rsb-duration) #{$rsb-easing-house},
+                 filter calc(var(--rsb-duration) * 0.7) #{$rsb-easing-house};
              opacity: 0;
              filter: blur(12px);
          }
      }
- 
+
      &.rsb-reveal--style-slide {
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
@@ -83,11 +104,11 @@
              transform: translateX(-32px);
          }
      }
- 
+
      // ---------------------------------------------------------------
      // Revealed state — same for every style.
      // ---------------------------------------------------------------
- 
+
      &.rsb-reveal--armed.rsb-reveal--in,
      & .rsb-reveal--armed.rsb-reveal--in {
          opacity: 1;
@@ -95,11 +116,11 @@
          filter: none;
      }
  }
- 
+
  // ---------------------------------------------------------------
  // Reduced motion: skip animation entirely.
  // ---------------------------------------------------------------
- 
+
  @media (prefers-reduced-motion: reduce) {
      .rsb-reveal.rsb-reveal--armed,
      .rsb-reveal .rsb-reveal--armed {
