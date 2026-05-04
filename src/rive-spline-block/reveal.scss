@@ -97,11 +97,23 @@
          }
      }
 
+     // Slide is cadence-aware. Default: slide in from the left.
+     // When the layout reveals column-by-column, sliding from the side
+     // makes cells visibly cross through each other's final positions.
+     // Switch to a vertical slide for that case so the gesture matches
+     // the direction of the cadence.
      &.rsb-reveal--style-slide {
          &.rsb-reveal--armed,
          & .rsb-reveal--armed {
              opacity: 0;
              transform: translateX(-32px);
+         }
+
+         &.rsb-reveal--cadence-column {
+             &.rsb-reveal--armed,
+             & .rsb-reveal--armed {
+                 transform: translateY(-24px);
+             }
          }
      }
 
