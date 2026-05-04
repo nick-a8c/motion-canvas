@@ -18,6 +18,18 @@ import './reveal.scss';
 const READY_CLASS = 'rsb-reveal--armed';
 const ACTIVE_CLASS = 'rsb-reveal--in';
 
+// Stagger easing exponent. 1.0 = linear (each cell waits the same as
+// the last). Below 1.0 compresses later cells so the tail doesn't drag.
+// 0.7 feels deliberate without metronomic. Don't go below ~0.5 unless
+// you want cells nearly piling up at the end.
+const STAGGER_EASE = 0.7;
+
+function easedDelay( index, staggerMs ) {
+	// First cell always fires immediately.
+	if ( index === 0 ) return 0;
+	return staggerMs * Math.pow( index, STAGGER_EASE );
+}
+
 function readClassValue( element, prefix ) {
 	const match = element.className.match( new RegExp( `${ prefix }-([\\w-]+)` ) );
 	return match ? match[ 1 ] : null;
@@ -82,7 +94,7 @@ function setupReveal( wrapper ) {
 						targets.forEach( ( target, i ) => {
 							setTimeout( () => {
 								target.classList.add( ACTIVE_CLASS );
-							}, i * staggerMs );
+							}, easedDelay( i, staggerMs ) );
 						} );
 					} );
 				} );
