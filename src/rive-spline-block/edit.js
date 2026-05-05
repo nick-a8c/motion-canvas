@@ -17,6 +17,7 @@ import {
 	ToolbarGroup,
 	ToolbarDropdownMenu,
 	Modal,
+	Spinner,
 } from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import './editor.scss';
@@ -64,6 +65,16 @@ const validateSplineUrl = (raw) => {
 		};
 	}
 
+	if (/<hana-viewer|<script[^>]*hana-viewer/i.test(trimmed)) {
+		return {
+			ok: false,
+			message: __(
+				'Looks like you pasted Hana embed code. Use the public viewer URL instead — the one that starts with https://my.spline.design/',
+				'rive-spline-block'
+			),
+		};
+	}
+
 	const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
 	let parsed;
@@ -96,6 +107,61 @@ const validateSplineUrl = (raw) => {
 	return { ok: true, url: withProtocol };
 };
 
+// Check if the URL actually responds successfully. Returns a promise:
+//   - { ok: true } → URL works
+//   - { ok: false, message } → URL is broken with a user-friendly reason
+//   - { ok: true, unverified: true } → CORS blocked, can't verify either way
+//
+// Spline's my.spline.design URLs typically allow some level of CORS for
+// reading the page (it's an embed). S3 AccessDenied responses do too,
+// since they're public XML errors. So we can usually distinguish.
+const verifySplineUrlReachable = async (url) => {
+	try {
+		const response = await fetch(url, {
+			method: 'GET',
+			mode: 'cors',
+			redirect: 'follow',
+		});
+
+		// Got a response with readable status.
+		if (!response.ok) {
+			// 403, 404, 500, etc.
+			return {
+				ok: false,
+				message: __(
+					'This URL didn\'t load. Make sure your Spline scene is published and the link is correct.',
+					'rive-spline-block'
+				),
+			};
+		}
+
+		// 200 OK — but we should check the body for AccessDenied XML,
+		// since S3 sometimes returns 200 with error content (rare but
+		// possible). If body contains "AccessDenied", treat as broken.
+		try {
+			const text = await response.text();
+			if (/<Code>AccessDenied<\/Code>|AccessDeniedAccess Denied/i.test(text)) {
+				return {
+					ok: false,
+					message: __(
+						'This Spline scene isn\'t public. Make sure the scene is set to public in Spline.',
+						'rive-spline-block'
+					),
+				};
+			}
+		} catch (e) {
+			// Couldn't read body (CORS on body but not status) — accept.
+		}
+
+		return { ok: true };
+	} catch (e) {
+		// CORS blocked, network failure, or other fetch error.
+		// We can't tell if URL is good or bad — accept it and let the
+		// runtime fallback handle bad cases at render time.
+		return { ok: true, unverified: true };
+	}
+};
+
 export default function Edit({ attributes, setAttributes }) {
 	const {
 		fileUrl,
@@ -115,7 +181,21 @@ export default function Edit({ attributes, setAttributes }) {
 
 	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
 	const [splineError, setSplineError] = useState(null);
+	const [splineChecking, setSplineChecking] = useState(false);
 	const [pendingFormatSwitch, setPendingFormatSwitch] = useState(null);
+
+	// Sidebar field has its own local draft so we don't fire validation
+	// on every keystroke. Validates on blur.
+	const [sidebarUrlDraft, setSidebarUrlDraft] = useState(splineUrl || '');
+	const [sidebarError, setSidebarError] = useState(null);
+	const [sidebarChecking, setSidebarChecking] = useState(false);
+
+	// Keep the sidebar draft in sync if splineUrl changes from elsewhere
+	// (e.g. the inline placeholder saved a URL, or format switch cleared it).
+	useEffect(() => {
+		setSidebarUrlDraft(splineUrl || '');
+		setSidebarError(null);
+	}, [splineUrl]);
 
 	useEffect(() => {
 		if (!fileUrl) return;
@@ -157,14 +237,64 @@ export default function Edit({ attributes, setAttributes }) {
 		}
 	};
 
-	const handleSplineSubmit = () => {
+	const handleSplineSubmit = async () => {
 		const result = validateSplineUrl(splineUrlDraft);
 		if (!result.ok) {
 			setSplineError(result.message);
 			return;
 		}
 		setSplineError(null);
+
+		// Shape is valid. Now check if the URL is actually reachable.
+		setSplineChecking(true);
+		const reachability = await verifySplineUrlReachable(result.url);
+		setSplineChecking(false);
+
+		if (!reachability.ok) {
+			setSplineError(reachability.message);
+			return;
+		}
+
 		setSplineUrlDraft(result.url);
+		setAttributes({ splineUrl: result.url });
+	};
+
+	// Validate the sidebar URL on blur. If valid, commit to attribute.
+	// If invalid, show error and leave the draft showing what the user
+	// typed so they can fix it.
+	const handleSidebarUrlBlur = async () => {
+		const trimmed = (sidebarUrlDraft || '').trim();
+
+		// If they cleared the field entirely, allow that — clears splineUrl.
+		if (!trimmed) {
+			setSidebarError(null);
+			if (splineUrl) setAttributes({ splineUrl: '' });
+			return;
+		}
+
+		// If they didn't actually change it, don't re-validate.
+		if (trimmed === splineUrl) {
+			setSidebarError(null);
+			return;
+		}
+
+		const result = validateSplineUrl(sidebarUrlDraft);
+		if (!result.ok) {
+			setSidebarError(result.message);
+			return;
+		}
+		setSidebarError(null);
+
+		setSidebarChecking(true);
+		const reachability = await verifySplineUrlReachable(result.url);
+		setSidebarChecking(false);
+
+		if (!reachability.ok) {
+			setSidebarError(reachability.message);
+			return;
+		}
+
+		setSidebarUrlDraft(result.url);
 		setAttributes({ splineUrl: result.url });
 	};
 
@@ -284,12 +414,29 @@ export default function Edit({ attributes, setAttributes }) {
 						</>
 					)}
 					{animationType === 'spline' && (
-						<TextControl
-							label={__('Spline Public URL', 'rive-spline-block')}
-							placeholder="https://my.spline.design/..."
-							value={splineUrl || ''}
-							onChange={(val) => setAttributes({ splineUrl: val })}
-						/>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+							<TextControl
+								label={__('Spline Public URL', 'rive-spline-block')}
+								placeholder="https://my.spline.design/..."
+								value={sidebarUrlDraft}
+								onChange={(val) => {
+									setSidebarUrlDraft(val);
+									if (sidebarError) setSidebarError(null);
+								}}
+								onBlur={handleSidebarUrlBlur}
+								disabled={sidebarChecking}
+								help={
+									sidebarChecking
+										? __('Checking URL…', 'rive-spline-block')
+										: __('Click away from the field to validate.', 'rive-spline-block')
+								}
+							/>
+							{sidebarError && (
+								<Notice status="error" isDismissible={false}>
+									{sidebarError}
+								</Notice>
+							)}
+						</div>
 					)}
 					{animationType !== 'spline' && (
 						<MediaUploadCheck>
@@ -394,14 +541,24 @@ export default function Edit({ attributes, setAttributes }) {
 									placeholder="https://my.spline.design/..."
 									help={__('Use the public viewer URL, not the embed code.', 'rive-spline-block')}
 									__nextHasNoMarginBottom
+									disabled={splineChecking}
 								/>
 								<Button
 									variant="primary"
-									disabled={!splineUrlDraft.trim()}
+									disabled={!splineUrlDraft.trim() || splineChecking}
 									onClick={handleSplineSubmit}
 									style={{ justifyContent: 'center' }}
 								>
-									{__('Use this URL', 'rive-spline-block')}
+									{splineChecking ? (
+										<>
+											<Spinner />
+											<span style={{ marginLeft: '6px' }}>
+												{__('Checking…', 'rive-spline-block')}
+											</span>
+										</>
+									) : (
+										__('Use this URL', 'rive-spline-block')
+									)}
 								</Button>
 								{splineError && (
 									<Notice
