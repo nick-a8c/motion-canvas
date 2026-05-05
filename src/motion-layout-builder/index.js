@@ -172,8 +172,12 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
 		);
 	}
 
+	// Default the Group to wide alignment so the layout has room to
+	// breathe in narrow themes. Users can change this in the toolbar
+	// after insertion if they want.
 	const groupAttributes = {
 		className: buildClassName( reveal ),
+		align: 'wide',
 	};
 
 	const group = createBlock( 'core/group', groupAttributes, rowBlocks );

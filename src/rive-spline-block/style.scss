@@ -32,3 +32,63 @@
 	margin-right: auto;
 	width: 100%;
 }
+
+/**
+ * Builder layout cell uniformity.
+ *
+ * In a builder-inserted layout, every column in a row should feel like
+ * the same "cell" regardless of what content lives inside it. Without
+ * these rules, an animation cell sizes by aspect-ratio while a paragraph
+ * cell sizes to its text, creating obvious symmetry breaks.
+ *
+ * Strategy:
+ *  - Each column inside a builder row becomes a flex container that fills
+ *    the row's height.
+ *  - Direct cell content (image, paragraph, heading, our animation block)
+ *    stretches to fill the column.
+ *  - Images use object-fit cover so they crop to fit instead of letterboxing.
+ *
+ * Scoped to .rsb-builder-layout so we never affect non-builder Group blocks.
+ */
+.rsb-builder-layout {
+
+    // Each row stretches its columns so all cells in a row share height.
+    .wp-block-columns {
+        align-items: stretch;
+    }
+
+    // Each column fills its row vertically and flexes its content to fill.
+    .wp-block-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        // The single direct child (image, paragraph, heading, our block)
+        // should fill the column width fully and use the full available
+        // vertical space. Margin overrides defeat WP's default block-gap.
+        > * {
+            margin-top: 0;
+            margin-bottom: 0;
+            width: 100%;
+        }
+    }
+
+    // Images crop to fill the cell instead of fitting to natural size.
+    .wp-block-image {
+        height: 100%;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+    }
+
+    // Our animation block respects its aspectRatio attribute already, so
+    // we don't force its height. But override the default 600px max-width
+    // cap so it fills the cell.
+    .wp-block-create-block-rive-spline-block {
+        max-width: 100% !important;
+    }
+}
