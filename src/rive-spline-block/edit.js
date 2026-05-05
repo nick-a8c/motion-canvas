@@ -185,7 +185,11 @@ export default function Edit({ attributes, setAttributes }) {
 		revealStyle,
 		revealSpeed,
 	} = attributes;
-	const lottieContainerRef = useRef(null);
+
+	// Outer wrapper React owns. Inner div is created/destroyed by us
+	// imperatively and is what we hand to lottie-web — keeping lottie's
+	// DOM mutations completely outside React's reconciliation tree.
+	const lottieWrapperRef = useRef(null);
 	const blockProps = useBlockProps();
 
 	const [splineUrlDraft, setSplineUrlDraft] = useState(splineUrl || '');
@@ -206,15 +210,41 @@ export default function Edit({ attributes, setAttributes }) {
 		setSidebarError(null);
 	}, [splineUrl]);
 
+	// Lottie editor preview, isolated from React.
+	//
+	// PROBLEM: lottie-web appends an SVG to whatever container you give
+	// it. If that container is React-managed (a div with a ref), React
+	// later tries to reconcile or unmount the container and walks
+	// children it thinks should still be there → NotFoundError on
+	// removeChild.
+	//
+	// FIX: never give lottie a React-managed div. We render a clean
+	// outer wrapper, then create our own inner div imperatively and
+	// hand THAT to lottie. React only knows about the outer wrapper —
+	// the inner div is opaque to its reconciler.
 	useEffect(() => {
 		if (!fileUrl) return;
 		if (animationType !== 'lottie') return;
-		if (!lottieContainerRef.current) return;
 
-		let anim;
+		const wrapper = lottieWrapperRef.current;
+		if (!wrapper) return;
+
+		// Create the inner div lottie will own. React never sees inside
+		// this — as far as React knows, the wrapper just contains "a
+		// div" and that's it.
+		const innerContainer = document.createElement('div');
+		innerContainer.style.width = '100%';
+		innerContainer.style.height = '100%';
+		wrapper.appendChild(innerContainer);
+
+		let cancelled = false;
+		let anim = null;
+
 		import('lottie-web').then((lottie) => {
+			if (cancelled) return;
+
 			anim = lottie.default.loadAnimation({
-				container: lottieContainerRef.current,
+				container: innerContainer,
 				renderer: 'svg',
 				loop: true,
 				autoplay: true,
@@ -223,7 +253,22 @@ export default function Edit({ attributes, setAttributes }) {
 		});
 
 		return () => {
-			if (anim) anim.destroy();
+			cancelled = true;
+
+			if (anim) {
+				try {
+					anim.destroy();
+				} catch (e) {
+					// Defensive.
+				}
+			}
+
+			// Remove the inner div ourselves. Since React never knew
+			// about its contents, removing it can't conflict with
+			// React's reconciliation.
+			if (innerContainer.parentNode === wrapper) {
+				wrapper.removeChild(innerContainer);
+			}
 		};
 	}, [fileUrl, animationType]);
 
@@ -609,7 +654,7 @@ export default function Edit({ attributes, setAttributes }) {
 						)}
 					</div>
 				) : animationType === 'lottie' ? (
-					<div ref={lottieContainerRef} style={wrapperStyle} />
+					<div ref={lottieWrapperRef} style={wrapperStyle} />
 				) : (
 					<div style={{
 						...wrapperStyle,
