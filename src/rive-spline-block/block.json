@@ -6,7 +6,7 @@
     "title": "Rive / Spline / Lottie",
     "category": "media",
     "icon": "format-video",
-    "description": "Embed Rive, Spline, or Lottie animations natively.",
+    "description": "Embed interactive Rive, Spline, or Lottie animations directly in your posts and pages.",
     "supports": {
         "html": false,
         "align": [ "left", "center", "right", "wide", "full" ]

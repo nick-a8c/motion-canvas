@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name:       Rive Spline Block
- * Description:       Example block scaffolded with Create Block tool.
+* Plugin Name:       Rive / Spline / Lottie Block
+ * Description:       Add interactive motion graphics to your WordPress site. Supports Rive, Spline, and Lottie — no code required.
  * Version:           0.1.0
  * Requires at least: 6.8
  * Requires PHP:      7.4
