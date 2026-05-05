@@ -15,6 +15,15 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { createBlock } from '@wordpress/blocks';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import {
+	LAYOUT_TEMPLATES,
+	TEMPLATE_UNIFORM,
+	getMergePlan,
+	getVisibleCells,
+	isTemplateSupported,
+	getCoveredCells,
+	getMergeAtAnchor,
+} from './layout-templates';
 
 const MotionLayoutBuilderIcon = () => (
 	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -112,9 +121,6 @@ const createCellBlock = ( cell ) => {
 	}
 };
 
-// Compose the className string for a Group based on reveal config.
-// Always includes BUILDER_MARKER_CLASS so we can find it later.
-// Reveal classes are only added when style !== 'none'.
 const buildClassName = ( reveal ) => {
 	const classes = [ BUILDER_MARKER_CLASS ];
 	if ( reveal && reveal.style && reveal.style !== 'none' ) {
@@ -126,8 +132,6 @@ const buildClassName = ( reveal ) => {
 	return classes.join( ' ' );
 };
 
-// Parse reveal config out of an existing className string.
-// Returns { style, cadence, speed } with sensible fallbacks.
 const parseRevealFromClassName = ( className ) => {
 	const result = { style: 'none', cadence: 'cell', speed: 'smooth' };
 	if ( ! className ) return result;
@@ -143,7 +147,9 @@ const parseRevealFromClassName = ( className ) => {
 	return result;
 };
 
-const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
+const buildLayoutBlocks = ( rows, columns, cells, reveal, templateId ) => {
+	const plan = getMergePlan( templateId, rows, columns );
+	const covered = getCoveredCells( plan, rows, columns );
 	const rowBlocks = [];
 
 	for ( let r = 0; r < rows; r++ ) {
@@ -151,17 +157,25 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
 
 		for ( let c = 0; c < columns; c++ ) {
 			const cellIndex = r * columns + c;
-			const cell = cells[ cellIndex ];
+			if ( covered.has( cellIndex ) ) continue;
+
+			const cell = cells[ cellIndex ] || { type: 'empty' };
 			const innerBlock = createCellBlock( cell );
 
+			const merge = getMergeAtAnchor( plan, r, c );
+			const columnAttrs = { verticalAlignment: 'center' };
+
+			if ( merge && merge.colSpan > 1 ) {
+				const widthPct = ( merge.colSpan / columns ) * 100;
+				columnAttrs.width = `${ widthPct.toFixed( 2 ) }%`;
+			}
+
 			columnBlocks.push(
-				createBlock(
-					'core/column',
-					{ verticalAlignment: 'center' },
-					[ innerBlock ]
-				)
+				createBlock( 'core/column', columnAttrs, [ innerBlock ] )
 			);
 		}
+
+		if ( columnBlocks.length === 0 ) continue;
 
 		rowBlocks.push(
 			createBlock(
@@ -172,9 +186,6 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
 		);
 	}
 
-	// Default the Group to wide alignment so the layout has room to
-	// breathe in narrow themes. Users can change this in the toolbar
-	// after insertion if they want.
 	const groupAttributes = {
 		className: buildClassName( reveal ),
 		align: 'wide',
@@ -184,11 +195,128 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal ) => {
 	return [ group ];
 };
 
+// ---------------------------------------------------------------------
+// Compute proportional row sizing for the layout preview.
+//
+// Default behavior is `repeat(rows, 1fr)` — every row equal height.
+// That makes wide-merged rows look squat (a wide cell at the same
+// height as its neighbor square cells) instead of natural.
+//
+// Better: rows that contain ONLY wide merges (cells spanning all
+// columns) get a smaller share, since visually they should be a thin
+// banner. Rows with normal cells get more vertical space.
+//
+// Rule: row gets "1fr" if its only anchor is a full-width merge,
+// otherwise "2fr" (so square cells dominate vertically).
+// ---------------------------------------------------------------------
+const buildPreviewRowTemplate = ( plan, rows, columns ) => {
+	const sizes = [];
+	for ( let r = 0; r < rows; r++ ) {
+		// Find merge anchors that start in this row.
+		const anchorsInRow = plan.filter( ( m ) => m.row === r );
+		const isFullWidthRow =
+			anchorsInRow.length === 1 &&
+			anchorsInRow[ 0 ].colSpan === columns &&
+			anchorsInRow[ 0 ].rowSpan === 1;
+		sizes.push( isFullWidthRow ? '1fr' : '2fr' );
+	}
+	return sizes.join( ' ' );
+};
+
+const LayoutThumbnail = ( { template, rows, columns, isSelected, isSupported, onClick } ) => {
+	const plan = isSupported ? getMergePlan( template.id, rows, columns ) : [];
+	const visible = isSupported ? getVisibleCells( plan, rows, columns ) : [];
+	const rowTemplate = isSupported ? buildPreviewRowTemplate( plan, rows, columns ) : `repeat(${ rows }, 1fr)`;
+
+	let borderColor = '#dcdcde';
+	if ( isSelected ) borderColor = '#2271b1';
+
+	const containerStyle = {
+		display: 'block',
+		padding: '8px',
+		border: `2px solid ${ borderColor }`,
+		borderRadius: '4px',
+		background: isSupported ? '#fff' : '#f6f7f7',
+		cursor: isSupported ? 'pointer' : 'not-allowed',
+		opacity: isSupported ? 1 : 0.45,
+		width: '100%',
+		minHeight: '64px',
+	};
+
+	const gridStyle = {
+		display: 'grid',
+		gridTemplateColumns: `repeat(${ columns }, 1fr)`,
+		gridTemplateRows: rowTemplate,
+		gap: '2px',
+		width: '100%',
+		aspectRatio: `${ columns } / ${ rows }`,
+	};
+
+	return (
+		<button
+			type="button"
+			onClick={ isSupported ? onClick : undefined }
+			disabled={ ! isSupported }
+			title={
+				isSupported
+					? template.describe
+					: `${ template.label } isn't available at ${ rows } × ${ columns }.`
+			}
+			style={ containerStyle }
+		>
+			{ isSupported ? (
+				<div style={ gridStyle }>
+					{ visible.map( ( v ) => (
+						<div
+							key={ v.index }
+							style={ {
+								gridColumn: `span ${ v.colSpan }`,
+								gridRow: `span ${ v.rowSpan }`,
+								background: isSelected ? '#dbeafe' : '#e7e8ea',
+								border: `1px ${ isSelected ? 'solid #2271b1' : 'dashed #c3c4c7' }`,
+								borderRadius: '2px',
+							} }
+						/>
+					) ) }
+				</div>
+			) : (
+				<div
+					style={ {
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						minHeight: '40px',
+						fontSize: '10px',
+						color: '#8c8f94',
+						textAlign: 'center',
+						fontStyle: 'italic',
+					} }
+				>
+					{ __( 'N/A at this size', 'rive-spline-block' ) }
+				</div>
+			) }
+			<div
+				style={ {
+					marginTop: '6px',
+					fontSize: '11px',
+					textAlign: 'center',
+					color: isSelected ? '#2271b1' : '#1e1e1e',
+					fontWeight: isSelected ? 600 : 400,
+				} }
+			>
+				{ template.label }
+			</div>
+		</button>
+	);
+};
+
 const MotionLayoutBuilder = () => {
 	const [ rows, setRows ] = useState( 2 );
 	const [ columns, setColumns ] = useState( 2 );
 	const [ cells, setCells ] = useState( () => buildCells( 2, 2 ) );
 	const [ notice, setNotice ] = useState( null );
+
+	const [ selectedTemplate, setSelectedTemplate ] = useState( TEMPLATE_UNIFORM );
 
 	const [ revealStyle, setRevealStyle ] = useState( 'none' );
 	const [ revealCadence, setRevealCadence ] = useState( 'cell' );
@@ -196,8 +324,6 @@ const MotionLayoutBuilder = () => {
 
 	const { insertBlocks, updateBlockAttributes } = useDispatch( blockEditorStore );
 
-	// Watch the currently-selected block. If it's a builder Group, we're
-	// in edit mode for that Group.
 	const selectedGroup = useSelect( ( select ) => {
 		const block = select( blockEditorStore ).getSelectedBlock();
 		if ( ! block ) return null;
@@ -209,8 +335,6 @@ const MotionLayoutBuilder = () => {
 
 	const isEditMode = !! selectedGroup;
 
-	// When entering edit mode for a Group, sync the reveal dropdowns
-	// to reflect that Group's current reveal config.
 	useEffect( () => {
 		if ( ! selectedGroup ) return;
 		const parsed = parseRevealFromClassName( selectedGroup.attributes.className );
@@ -223,6 +347,16 @@ const MotionLayoutBuilder = () => {
 		setCells( ( previous ) => buildCells( rows, columns, previous ) );
 	}, [ rows, columns ] );
 
+	useEffect( () => {
+		if ( ! isTemplateSupported( selectedTemplate, rows, columns ) ) {
+			setSelectedTemplate( TEMPLATE_UNIFORM );
+		}
+	}, [ rows, columns, selectedTemplate ] );
+
+	const mergePlan = getMergePlan( selectedTemplate, rows, columns );
+	const visibleCells = getVisibleCells( mergePlan, rows, columns );
+	const previewRowTemplate = buildPreviewRowTemplate( mergePlan, rows, columns );
+
 	const updateCellType = ( index, newType ) => {
 		setCells( ( previous ) =>
 			previous.map( ( cell, i ) =>
@@ -231,8 +365,6 @@ const MotionLayoutBuilder = () => {
 		);
 	};
 
-	// Live-update the selected Group's className when reveal dropdowns
-	// change in edit mode.
 	const applyRevealToSelectedGroup = ( nextReveal ) => {
 		if ( ! selectedGroup ) return;
 		updateBlockAttributes( selectedGroup.clientId, {
@@ -274,11 +406,13 @@ const MotionLayoutBuilder = () => {
 	};
 
 	const handleInsert = () => {
-		const blocks = buildLayoutBlocks( rows, columns, cells, {
-			style: revealStyle,
-			cadence: revealCadence,
-			speed: revealSpeed,
-		} );
+		const blocks = buildLayoutBlocks(
+			rows,
+			columns,
+			cells,
+			{ style: revealStyle, cadence: revealCadence, speed: revealSpeed },
+			selectedTemplate
+		);
 		insertBlocks( blocks );
 		setNotice( {
 			status: 'success',
@@ -342,6 +476,38 @@ const MotionLayoutBuilder = () => {
 			</PanelBody>
 
 			<PanelBody
+				title={ __( 'Layout selection', 'rive-spline-block' ) }
+				initialOpen={ ! isEditMode }
+			>
+				<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
+					{ __( 'Pick a layout shape. Cells merge based on the chosen template.', 'rive-spline-block' ) }
+				</p>
+				<div
+					style={ {
+						display: 'grid',
+						gridTemplateColumns: 'repeat(2, 1fr)',
+						gap: '8px',
+					} }
+				>
+					{ LAYOUT_TEMPLATES.map( ( template ) => {
+						const supported = isTemplateSupported( template.id, rows, columns );
+						const selected = selectedTemplate === template.id;
+						return (
+							<LayoutThumbnail
+								key={ template.id }
+								template={ template }
+								rows={ rows }
+								columns={ columns }
+								isSelected={ selected }
+								isSupported={ supported }
+								onClick={ () => setSelectedTemplate( template.id ) }
+							/>
+						);
+					} ) }
+				</div>
+			</PanelBody>
+
+			<PanelBody
 				title={ __( 'Layout preview', 'rive-spline-block' ) }
 				initialOpen={ ! isEditMode }
 			>
@@ -354,7 +520,7 @@ const MotionLayoutBuilder = () => {
 					style={ {
 						display: 'grid',
 						gridTemplateColumns: `repeat(${ columns }, 1fr)`,
-						gridTemplateRows: `repeat(${ rows }, 1fr)`,
+						gridTemplateRows: previewRowTemplate,
 						gap: '6px',
 						aspectRatio: `${ columns } / ${ rows }`,
 						width: '100%',
@@ -362,63 +528,68 @@ const MotionLayoutBuilder = () => {
 						pointerEvents: isEditMode ? 'none' : 'auto',
 					} }
 				>
-					{ cells.map( ( cell, index ) => (
-						<Dropdown
-							key={ index }
-							popoverProps={ { placement: 'bottom-start' } }
-							renderToggle={ ( { isOpen, onToggle } ) => (
-								<button
-									type="button"
-									onClick={ onToggle }
-									aria-expanded={ isOpen }
-									disabled={ isEditMode }
-									style={ {
-										background:
-											cell.type === 'empty'
-												? '#f0f0f0'
-												: '#e7f0fa',
-										border:
-											cell.type === 'empty'
-												? '1px dashed #c3c4c7'
-												: '1px solid #2271b1',
-										borderRadius: '2px',
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										fontSize: '11px',
-										color:
-											cell.type === 'empty'
-												? '#757575'
-												: '#1e40af',
-										textAlign: 'center',
-										padding: '4px',
-										width: '100%',
-										height: '100%',
-										minHeight: '40px',
-										cursor: isEditMode ? 'not-allowed' : 'pointer',
-									} }
-								>
-									{ getCellLabel( cell.type ) }
-								</button>
-							) }
-							renderContent={ ( { onClose } ) => (
-								<MenuGroup>
-									{ CELL_TYPES.map( ( option ) => (
-										<MenuItem
-											key={ option.value }
-											onClick={ () => {
-												updateCellType( index, option.value );
-												onClose();
-											} }
-											isSelected={ cell.type === option.value }
-										>
-											{ option.label }
-										</MenuItem>
-									) ) }
-								</MenuGroup>
-							) }
-						/>
-					) ) }
+					{ visibleCells.map( ( visible ) => {
+						const cell = cells[ visible.index ] || { type: 'empty' };
+						return (
+							<Dropdown
+								key={ visible.index }
+								popoverProps={ { placement: 'bottom-start' } }
+								renderToggle={ ( { isOpen, onToggle } ) => (
+									<button
+										type="button"
+										onClick={ onToggle }
+										aria-expanded={ isOpen }
+										disabled={ isEditMode }
+										style={ {
+											gridColumn: `span ${ visible.colSpan }`,
+											gridRow: `span ${ visible.rowSpan }`,
+											background:
+												cell.type === 'empty'
+													? '#f0f0f0'
+													: '#e7f0fa',
+											border:
+												cell.type === 'empty'
+													? '1px dashed #c3c4c7'
+													: '1px solid #2271b1',
+											borderRadius: '2px',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+											fontSize: '11px',
+											color:
+												cell.type === 'empty'
+													? '#757575'
+													: '#1e40af',
+											textAlign: 'center',
+											padding: '4px',
+											width: '100%',
+											height: '100%',
+											minHeight: '40px',
+											cursor: isEditMode ? 'not-allowed' : 'pointer',
+										} }
+									>
+										{ getCellLabel( cell.type ) }
+									</button>
+								) }
+								renderContent={ ( { onClose } ) => (
+									<MenuGroup>
+										{ CELL_TYPES.map( ( option ) => (
+											<MenuItem
+												key={ option.value }
+												onClick={ () => {
+													updateCellType( visible.index, option.value );
+													onClose();
+												} }
+												isSelected={ cell.type === option.value }
+											>
+												{ option.label }
+											</MenuItem>
+										) ) }
+									</MenuGroup>
+								) }
+							/>
+						);
+					} ) }
 				</div>
 
 				{ ! isEditMode && (

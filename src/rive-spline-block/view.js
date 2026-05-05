@@ -26,14 +26,14 @@ function registerForAudioUnlock( riveInstance ) {
     document.addEventListener( 'touchstart', unlockAll );
 }
 
-// Build the friendly "scene didn't load" overlay. Returns the element
-// without inserting it. This overlay is a safety net — primary URL
-// validation happens in the editor (edit.js, verifySplineUrlReachable).
-// The runtime overlay only fires when an iframe genuinely can't load
-// at all (DNS failure, network down, CSP block).
-function buildSplineFallbackOverlay() {
+// Build a friendly fallback overlay for any animation type. The heading
+// is the same across formats; the hint differs per format because the
+// remediation differs (Spline = wrong URL, Rive/Lottie = bad file).
+//
+// hintHTML may contain inline <strong> tags for emphasis.
+function buildFallbackOverlay( hintHTML ) {
     const overlay = document.createElement( 'div' );
-    overlay.className = 'rsb-spline-fallback';
+    overlay.className = 'rsb-fallback-overlay';
     overlay.style.position = 'absolute';
     overlay.style.inset = '0';
     overlay.style.background = '#1a1a2e';
@@ -57,15 +57,30 @@ function buildSplineFallbackOverlay() {
     hint.style.color = '#8888aa';
     hint.style.fontSize = '13px';
     hint.style.margin = '0';
-    hint.innerHTML = 'Please check if the <strong style="color:#ccccdd">URL</strong> from Spline is <strong style="color:#ccccdd">correct</strong>.';
+    hint.innerHTML = hintHTML;
     overlay.appendChild( hint );
 
     return overlay;
 }
 
+// Format-specific hint copy.
+const SPLINE_HINT = 'Please check if the <strong style="color:#ccccdd">URL</strong> from Spline is <strong style="color:#ccccdd">correct</strong>.';
+const RIVE_HINT = 'Make sure the file is a valid <strong style="color:#ccccdd">.riv</strong> export from Rive.';
+const LOTTIE_HINT = 'Make sure the file is a valid <strong style="color:#ccccdd">Lottie JSON</strong> export.';
+
+// Helper: replace the wrapper's contents with a fallback overlay.
+// Used by all three animation types when their load fails.
+function showFallback( wrapper, hintHTML ) {
+    // If a fallback is already showing, don't stack another one.
+    if ( wrapper.querySelector( '.rsb-fallback-overlay' ) ) return;
+    const overlay = buildFallbackOverlay( hintHTML );
+    wrapper.appendChild( overlay );
+}
+
 // Mount a Spline iframe inside the wrapper. If the iframe never fires
 // 'load' within 8 seconds (true network failure), or fires 'error',
-// show the friendly fallback overlay.
+// show the friendly fallback overlay. Primary URL validation happens
+// in the editor (edit.js); this is the runtime safety net.
 function mountSplineIframe( wrapper, splineUrl ) {
     wrapper.innerHTML = '';
 
@@ -81,26 +96,20 @@ function mountSplineIframe( wrapper, splineUrl ) {
     wrapper.appendChild( iframe );
 
     let loaded = false;
-    let fallbackShown = false;
-
-    const showFallback = () => {
-        if ( fallbackShown ) return;
-        fallbackShown = true;
-        const overlay = buildSplineFallbackOverlay();
-        wrapper.appendChild( overlay );
-    };
 
     iframe.addEventListener( 'load', () => {
         loaded = true;
     } );
 
-    iframe.addEventListener( 'error', showFallback );
+    iframe.addEventListener( 'error', () => {
+        showFallback( wrapper, SPLINE_HINT );
+    } );
 
     // 8s is generous — Spline scenes are usually responsive within
     // 2-3s on a normal connection. If 'load' hasn't fired by then,
     // the iframe is genuinely stuck.
     setTimeout( () => {
-        if ( ! loaded ) showFallback();
+        if ( ! loaded ) showFallback( wrapper, SPLINE_HINT );
     }, 8000 );
 }
 
@@ -162,6 +171,14 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
                     r.resizeDrawingSurfaceToCanvas();
                 } );
             },
+            // Rive fires onLoadError when:
+            //  - The file at src isn't reachable (404, network)
+            //  - The file isn't a valid .riv (parse failure)
+            //  - The runtime hits an internal error initializing
+            // In any case we treat it the same: show the fallback.
+            onLoadError: () => {
+                showFallback( wrapper, RIVE_HINT );
+            },
         } );
     }
 
@@ -197,6 +214,16 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
         } );
 
         anim.setSpeed( playbackSpeed );
+
+        // Lottie fires 'data_failed' when the JSON can't be fetched
+        // (404, CORS) and 'error' for runtime errors after load.
+        // Both should show the same fallback.
+        anim.addEventListener( 'data_failed', () => {
+            showFallback( wrapper, LOTTIE_HINT );
+        } );
+        anim.addEventListener( 'error', () => {
+            showFallback( wrapper, LOTTIE_HINT );
+        } );
 
         if ( ! aspectRatioAttr ) {
             anim.addEventListener( 'DOMLoaded', () => {
