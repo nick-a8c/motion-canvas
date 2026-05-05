@@ -28,6 +28,15 @@ const TYPE_OPTIONS = [
 	{ label: 'Lottie (JSON)', value: 'lottie' },
 ];
 
+// Short helper text shown under the format dropdown in the empty
+// placeholder. Explains what each format is for users who may not
+// recognize the name.
+const TYPE_HELPER_TEXT = {
+	rive: __( 'Interactive vector animations. Upload a .riv file from Rive.', 'rive-spline-block' ),
+	spline: __( '3D scenes from spline.design. Paste the public viewer URL.', 'rive-spline-block' ),
+	lottie: __( 'Lightweight JSON animations from After Effects. Upload a .json file.', 'rive-spline-block' ),
+};
+
 const REVEAL_STYLE_OPTIONS = [
 	{ label: 'None', value: 'none' },
 	{ label: 'Fade', value: 'fade' },
@@ -507,12 +516,23 @@ export default function Edit({ attributes, setAttributes }) {
 						justifyContent: 'center',
 						gap: '12px',
 						background: '#1a1a2e',
-						padding: '20px',
+						padding: '24px 20px',
 					}}>
 						<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<circle cx="24" cy="24" r="24" fill="#333355" />
 							<text x="24" y="30" textAnchor="middle" fontSize="20" fill="#8888ff">✦</text>
 						</svg>
+
+						<p style={{
+							color: '#ccccdd',
+							fontSize: '14px',
+							margin: 0,
+							textAlign: 'center',
+							maxWidth: '320px',
+							lineHeight: 1.4,
+						}}>
+							{__('Embed an interactive animation. Pick a format below.', 'rive-spline-block')}
+						</p>
 
 						<div style={{ width: '100%', maxWidth: '320px' }}>
 							<SelectControl
@@ -524,10 +544,16 @@ export default function Edit({ attributes, setAttributes }) {
 							/>
 						</div>
 
-						<p style={{ color: '#8888aa', fontSize: '13px', margin: 0, textAlign: 'center' }}>
-							{animationType === 'spline'
-								? __('Paste your Spline public viewer URL', 'rive-spline-block')
-								: __('Add your animation file', 'rive-spline-block')}
+						<p style={{
+							color: '#8888aa',
+							fontSize: '12px',
+							margin: 0,
+							textAlign: 'center',
+							maxWidth: '320px',
+							lineHeight: 1.4,
+							fontStyle: 'italic',
+						}}>
+							{TYPE_HELPER_TEXT[animationType]}
 						</p>
 
 						{animationType === 'spline' ? (
@@ -539,7 +565,6 @@ export default function Edit({ attributes, setAttributes }) {
 										if (splineError) setSplineError(null);
 									}}
 									placeholder="https://my.spline.design/..."
-									help={__('Use the public viewer URL, not the embed code.', 'rive-spline-block')}
 									__nextHasNoMarginBottom
 									disabled={splineChecking}
 								/>
