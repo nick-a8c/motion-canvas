@@ -56,14 +56,6 @@
             "type": "string",
             "default": "smooth"
         },
-        "revealDuration": {
-            "type": "number",
-            "default": 0
-        },
-        "revealEasing": {
-            "type": "string",
-            "default": "auto"
-        },
         "align": {
             "type": "string"
         }
