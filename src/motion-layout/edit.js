@@ -17,6 +17,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	LAYOUT_TEMPLATES,
 	TEMPLATE_UNIFORM,
+	TEMPLATE_ASYMMETRIC,
 	getMergePlan,
 	getVisibleCells,
 	isTemplateSupported,
@@ -56,9 +57,6 @@ const REVEAL_SPEED_OPTIONS = [
 	{ label: __( 'Slow & cinematic', 'rive-spline-block' ), value: 'cinematic' },
 ];
 
-// Marker class on every layout this block produces. The edit-mode
-// reveal controls (added in Chunk C) recognize Groups carrying this
-// class and inject inspector controls for them.
 const BUILDER_MARKER_CLASS = 'rsb-builder-layout';
 
 const getCellLabel = ( type ) => {
@@ -123,14 +121,26 @@ const buildClassName = ( reveal ) => {
 	return classes.join( ' ' );
 };
 
-// Build the actual layout output that replaces this block.
-// Mirrors the sidebar plugin's logic: for each row, emit a core/columns
-// with one core/column per visible anchor. Cells covered by a merge
-// anchored elsewhere are skipped. Anchors with colSpan > 1 get a width
-// percentage to claim the merged horizontal space.
-const buildLayoutBlocks = ( rows, columns, cells, reveal, templateId ) => {
-	const plan = getMergePlan( templateId, rows, columns );
-	const covered = getCoveredCells( plan, rows, columns );
+// ---------------------------------------------------------------------
+// Output builders
+//
+// Two structures depending on the template/size combo:
+//
+// 1) buildColumnsLayout — used for Uniform, Wide-middle, Banded, and
+//    Asymmetric at 2×2. Each grid row becomes one core/columns block,
+//    cells become core/column children. Wide-spanning anchors get a
+//    width percentage. This is the original output shape.
+//
+// 2) buildAsymmetricGridLayout — used for Asymmetric at rows ≥ 3 AND
+//    cols ≥ 3. Produces an outer flex Group → wide top row → 2-column
+//    grid Group containing [tall left cell + nested grid of remaining
+//    cells]. The nested grid stretches in height to fit its children;
+//    the single left cell stretches vertically to match. This is how
+//    we get a real "tall cell" without CSS hacks — pure WordPress
+//    grid layout.
+// ---------------------------------------------------------------------
+
+const buildColumnsLayout = ( rows, columns, cells, plan, covered ) => {
 	const rowBlocks = [];
 
 	for ( let r = 0; r < rows; r++ ) {
@@ -167,12 +177,107 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal, templateId ) => {
 		);
 	}
 
+	return rowBlocks;
+};
+
+const buildAsymmetricGridLayout = ( rows, columns, cells ) => {
+	// Top wide row: one cell, full width.
+	// In the user's reference structure this was a "constrained" Group
+	// containing a wide-aligned child. We do the same — a constrained
+	// Group wrapper lets the cell's content respect alignment options.
+	const topCell = cells[ 0 ] || { type: 'empty' };
+	const topRowBlock = createBlock(
+		'core/group',
+		{ layout: { type: 'constrained' } },
+		[ createCellBlock( topCell ) ]
+	);
+
+	// Tall left cell: anchor at (1, 0). Its content goes directly
+	// inside the outer 2-column Grid 1 — when paired with the nested
+	// right-side grid, CSS Grid stretches both children to equal height.
+	const tallCellIndex = 1 * columns + 0;
+	const tallCell = cells[ tallCellIndex ] || { type: 'empty' };
+	const tallCellBlock = createCellBlock( tallCell );
+
+	// Right side: rows 1..rows-1, cols 1..cols-1. (rows-1) × (cols-1)
+	// cells, in row-major order. These go into a nested Grid 2 with
+	// (cols-1) columns. Grid 2's height grows to fit them all stacked.
+	const rightCellBlocks = [];
+	for ( let r = 1; r < rows; r++ ) {
+		for ( let c = 1; c < columns; c++ ) {
+			const cellIndex = r * columns + c;
+			const cell = cells[ cellIndex ] || { type: 'empty' };
+			rightCellBlocks.push( createCellBlock( cell ) );
+		}
+	}
+
+	const grid2Block = createBlock(
+		'core/group',
+		{
+			align: 'wide',
+			layout: {
+				type: 'grid',
+				columnCount: columns - 1,
+				minimumColumnWidth: null,
+			},
+		},
+		rightCellBlocks
+	);
+
+	// Grid 1: 2 columns. Left = tall cell, right = Grid 2.
+	const grid1Block = createBlock(
+		'core/group',
+		{
+			align: 'wide',
+			layout: {
+				type: 'grid',
+				columnCount: 2,
+				minimumColumnWidth: null,
+			},
+		},
+		[ tallCellBlock, grid2Block ]
+	);
+
+	return [ topRowBlock, grid1Block ];
+};
+
+const buildLayoutBlocks = ( rows, columns, cells, reveal, templateId ) => {
+	const plan = getMergePlan( templateId, rows, columns );
+	const covered = getCoveredCells( plan, rows, columns );
+
+	// Decide which output structure to use.
+	const useAsymmetricGrid =
+		templateId === TEMPLATE_ASYMMETRIC && rows >= 3 && columns >= 3;
+
+	let innerBlocks;
+	let outerLayoutAttr;
+
+	if ( useAsymmetricGrid ) {
+		innerBlocks = buildAsymmetricGridLayout( rows, columns, cells );
+		// Outer wrapper is a vertical flex Group so the top row sits
+		// above Grid 1.
+		outerLayoutAttr = {
+			type: 'flex',
+			orientation: 'vertical',
+			justifyContent: 'center',
+			flexWrap: 'wrap',
+		};
+	} else {
+		innerBlocks = buildColumnsLayout( rows, columns, cells, plan, covered );
+		// Default Group layout — children just stack normally.
+		outerLayoutAttr = undefined;
+	}
+
 	const groupAttributes = {
 		className: buildClassName( reveal ),
 		align: 'wide',
 	};
 
-	const group = createBlock( 'core/group', groupAttributes, rowBlocks );
+	if ( outerLayoutAttr ) {
+		groupAttributes.layout = outerLayoutAttr;
+	}
+
+	const group = createBlock( 'core/group', groupAttributes, innerBlocks );
 	return [ group ];
 };
 
@@ -222,8 +327,8 @@ const LayoutThumbnail = ( { template, rows, columns, isSelected, isSupported, on
 						<div
 							key={ v.index }
 							style={ {
-								gridColumn: `span ${ v.colSpan }`,
-								gridRow: `span ${ v.rowSpan }`,
+								gridColumnEnd: `span ${ v.colSpan }`,
+								gridRowEnd: `span ${ v.rowSpan }`,
 								background: isSelected ? '#dbeafe' : '#e7e8ea',
 								border: `1px ${ isSelected ? 'solid #2271b1' : 'dashed #c3c4c7' }`,
 								borderRadius: '2px',
@@ -308,9 +413,6 @@ export default function Edit( { clientId } ) {
 			{ style: revealStyle, cadence: revealCadence, speed: revealSpeed },
 			selectedTemplate
 		);
-		// Replace this block (the Motion Layout configurator) with the
-		// generated layout. After this call, this component unmounts and
-		// the user is editing the resulting Group as a normal block.
 		replaceBlocks( clientId, blocks );
 	};
 
@@ -380,53 +482,53 @@ export default function Edit( { clientId } ) {
 				<div
 					className="rsb-motion-layout-config__preview"
 					style={ {
-						display: 'grid',
 						gridTemplateColumns: `repeat(${ columns }, 1fr)`,
 						gridTemplateRows: `repeat(${ rows }, 1fr)`,
-						gap: '6px',
 						aspectRatio: `${ columns } / ${ rows }`,
-						width: '100%',
-						maxWidth: '420px',
 					} }
 				>
 					{ visibleCells.map( ( visible ) => {
 						const cell = cells[ visible.index ] || { type: 'empty' };
 						return (
-							<Dropdown
+							<div
 								key={ visible.index }
-								popoverProps={ { placement: 'bottom-start' } }
-								renderToggle={ ( { isOpen, onToggle } ) => (
-									<button
-										type="button"
-										onClick={ onToggle }
-										aria-expanded={ isOpen }
-										className="rsb-motion-layout-config__cell"
-										data-cell-type={ cell.type }
-										style={ {
-											gridColumn: `span ${ visible.colSpan }`,
-											gridRow: `span ${ visible.rowSpan }`,
-										} }
-									>
-										{ getCellLabel( cell.type ) }
-									</button>
-								) }
-								renderContent={ ( { onClose } ) => (
-									<MenuGroup>
-										{ CELL_TYPES.map( ( option ) => (
-											<MenuItem
-												key={ option.value }
-												onClick={ () => {
-													updateCellType( visible.index, option.value );
-													onClose();
-												} }
-												isSelected={ cell.type === option.value }
-											>
-												{ option.label }
-											</MenuItem>
-										) ) }
-									</MenuGroup>
-								) }
-							/>
+								className="rsb-motion-layout-config__cell-wrap"
+								style={ {
+									gridColumnEnd: `span ${ visible.colSpan }`,
+									gridRowEnd: `span ${ visible.rowSpan }`,
+								} }
+							>
+								<Dropdown
+									popoverProps={ { placement: 'bottom-start' } }
+									renderToggle={ ( { isOpen, onToggle } ) => (
+										<button
+											type="button"
+											onClick={ onToggle }
+											aria-expanded={ isOpen }
+											className="rsb-motion-layout-config__cell"
+											data-cell-type={ cell.type }
+										>
+											{ getCellLabel( cell.type ) }
+										</button>
+									) }
+									renderContent={ ( { onClose } ) => (
+										<MenuGroup>
+											{ CELL_TYPES.map( ( option ) => (
+												<MenuItem
+													key={ option.value }
+													onClick={ () => {
+														updateCellType( visible.index, option.value );
+														onClose();
+													} }
+													isSelected={ cell.type === option.value }
+												>
+													{ option.label }
+												</MenuItem>
+											) ) }
+										</MenuGroup>
+									) }
+								/>
+							</div>
 						);
 					} ) }
 				</div>
