@@ -30,6 +30,7 @@ const CELL_TYPES = [
 	{ value: 'rive', label: __( 'Rive', 'rive-spline-block' ) },
 	{ value: 'spline', label: __( 'Spline', 'rive-spline-block' ) },
 	{ value: 'lottie', label: __( 'Lottie', 'rive-spline-block' ) },
+    { value: 'html', label: __( 'HTML', 'rive-spline-block' ) },
 	{ value: 'paragraph', label: __( 'Paragraph', 'rive-spline-block' ) },
 	{ value: 'heading', label: __( 'Heading', 'rive-spline-block' ) },
 	{ value: 'image', label: __( 'Image', 'rive-spline-block' ) },
@@ -88,6 +89,11 @@ const createCellBlock = ( cell ) => {
 		case 'lottie':
 			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'lottie',
+				aspectRatio: '1/1',
+			} );
+            case 'html':
+			return createBlock( 'create-block/rive-spline-block', {
+				animationType: 'html',
 				aspectRatio: '1/1',
 			} );
 		case 'paragraph':
