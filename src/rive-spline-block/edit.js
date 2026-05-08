@@ -26,6 +26,7 @@ const TYPE_OPTIONS = [
 	{ label: 'Rive (.riv)', value: 'rive' },
 	{ label: 'Spline', value: 'spline' },
 	{ label: 'Lottie (JSON)', value: 'lottie' },
+	{ label: 'HTML (.html)', value: 'html' },
 ];
 
 // Short helper text shown under the format dropdown in the empty
@@ -35,6 +36,7 @@ const TYPE_HELPER_TEXT = {
 	rive: __( 'Interactive vector animations. Upload a .riv file from Rive.', 'rive-spline-block' ),
 	spline: __( '3D scenes from spline.design. Paste the public viewer URL.', 'rive-spline-block' ),
 	lottie: __( 'Lightweight JSON animations from After Effects. Upload a .json file.', 'rive-spline-block' ),
+	html: __( 'Standalone HTML animation. Upload a self-contained .html file.', 'rive-spline-block' ),
 };
 
 const REVEAL_STYLE_OPTIONS = [
@@ -116,14 +118,6 @@ const validateSplineUrl = (raw) => {
 	return { ok: true, url: withProtocol };
 };
 
-// Check if the URL actually responds successfully. Returns a promise:
-//   - { ok: true } → URL works
-//   - { ok: false, message } → URL is broken with a user-friendly reason
-//   - { ok: true, unverified: true } → CORS blocked, can't verify either way
-//
-// Spline's my.spline.design URLs typically allow some level of CORS for
-// reading the page (it's an embed). S3 AccessDenied responses do too,
-// since they're public XML errors. So we can usually distinguish.
 const verifySplineUrlReachable = async (url) => {
 	try {
 		const response = await fetch(url, {
@@ -132,9 +126,7 @@ const verifySplineUrlReachable = async (url) => {
 			redirect: 'follow',
 		});
 
-		// Got a response with readable status.
 		if (!response.ok) {
-			// 403, 404, 500, etc.
 			return {
 				ok: false,
 				message: __(
@@ -144,9 +136,6 @@ const verifySplineUrlReachable = async (url) => {
 			};
 		}
 
-		// 200 OK — but we should check the body for AccessDenied XML,
-		// since S3 sometimes returns 200 with error content (rare but
-		// possible). If body contains "AccessDenied", treat as broken.
 		try {
 			const text = await response.text();
 			if (/<Code>AccessDenied<\/Code>|AccessDeniedAccess Denied/i.test(text)) {
@@ -159,15 +148,25 @@ const verifySplineUrlReachable = async (url) => {
 				};
 			}
 		} catch (e) {
-			// Couldn't read body (CORS on body but not status) — accept.
+			// Couldn't read body — accept.
 		}
 
 		return { ok: true };
 	} catch (e) {
-		// CORS blocked, network failure, or other fetch error.
-		// We can't tell if URL is good or bad — accept it and let the
-		// runtime fallback handle bad cases at render time.
 		return { ok: true, unverified: true };
+	}
+};
+
+// File-upload allowed-types list per format. Spline doesn't use upload.
+const allowedTypesForFormat = ( animationType ) => {
+	switch ( animationType ) {
+		case 'html':
+			return [ 'text/html' ];
+		case 'lottie':
+			return [ 'application/json' ];
+		case 'rive':
+		default:
+			return [ 'application/json', 'application/octet-stream' ];
 	}
 };
 
@@ -186,9 +185,6 @@ export default function Edit({ attributes, setAttributes }) {
 		revealSpeed,
 	} = attributes;
 
-	// Outer wrapper React owns. Inner div is created/destroyed by us
-	// imperatively and is what we hand to lottie-web — keeping lottie's
-	// DOM mutations completely outside React's reconciliation tree.
 	const lottieWrapperRef = useRef(null);
 	const blockProps = useBlockProps();
 
@@ -197,31 +193,16 @@ export default function Edit({ attributes, setAttributes }) {
 	const [splineChecking, setSplineChecking] = useState(false);
 	const [pendingFormatSwitch, setPendingFormatSwitch] = useState(null);
 
-	// Sidebar field has its own local draft so we don't fire validation
-	// on every keystroke. Validates on blur.
 	const [sidebarUrlDraft, setSidebarUrlDraft] = useState(splineUrl || '');
 	const [sidebarError, setSidebarError] = useState(null);
 	const [sidebarChecking, setSidebarChecking] = useState(false);
 
-	// Keep the sidebar draft in sync if splineUrl changes from elsewhere
-	// (e.g. the inline placeholder saved a URL, or format switch cleared it).
 	useEffect(() => {
 		setSidebarUrlDraft(splineUrl || '');
 		setSidebarError(null);
 	}, [splineUrl]);
 
-	// Lottie editor preview, isolated from React.
-	//
-	// PROBLEM: lottie-web appends an SVG to whatever container you give
-	// it. If that container is React-managed (a div with a ref), React
-	// later tries to reconcile or unmount the container and walks
-	// children it thinks should still be there → NotFoundError on
-	// removeChild.
-	//
-	// FIX: never give lottie a React-managed div. We render a clean
-	// outer wrapper, then create our own inner div imperatively and
-	// hand THAT to lottie. React only knows about the outer wrapper —
-	// the inner div is opaque to its reconciler.
+	// Lottie editor preview, isolated from React's reconciliation.
 	useEffect(() => {
 		if (!fileUrl) return;
 		if (animationType !== 'lottie') return;
@@ -229,9 +210,6 @@ export default function Edit({ attributes, setAttributes }) {
 		const wrapper = lottieWrapperRef.current;
 		if (!wrapper) return;
 
-		// Create the inner div lottie will own. React never sees inside
-		// this — as far as React knows, the wrapper just contains "a
-		// div" and that's it.
 		const innerContainer = document.createElement('div');
 		innerContainer.style.width = '100%';
 		innerContainer.style.height = '100%';
@@ -263,9 +241,6 @@ export default function Edit({ attributes, setAttributes }) {
 				}
 			}
 
-			// Remove the inner div ourselves. Since React never knew
-			// about its contents, removing it can't conflict with
-			// React's reconciliation.
 			if (innerContainer.parentNode === wrapper) {
 				wrapper.removeChild(innerContainer);
 			}
@@ -286,6 +261,8 @@ export default function Edit({ attributes, setAttributes }) {
 				return __('Upload Rive file (.riv)', 'rive-spline-block');
 			case 'lottie':
 				return __('Upload Lottie file (.json)', 'rive-spline-block');
+			case 'html':
+				return __('Upload HTML file (.html)', 'rive-spline-block');
 			default:
 				return __('Upload Animation File', 'rive-spline-block');
 		}
@@ -299,7 +276,6 @@ export default function Edit({ attributes, setAttributes }) {
 		}
 		setSplineError(null);
 
-		// Shape is valid. Now check if the URL is actually reachable.
 		setSplineChecking(true);
 		const reachability = await verifySplineUrlReachable(result.url);
 		setSplineChecking(false);
@@ -313,20 +289,15 @@ export default function Edit({ attributes, setAttributes }) {
 		setAttributes({ splineUrl: result.url });
 	};
 
-	// Validate the sidebar URL on blur. If valid, commit to attribute.
-	// If invalid, show error and leave the draft showing what the user
-	// typed so they can fix it.
 	const handleSidebarUrlBlur = async () => {
 		const trimmed = (sidebarUrlDraft || '').trim();
 
-		// If they cleared the field entirely, allow that — clears splineUrl.
 		if (!trimmed) {
 			setSidebarError(null);
 			if (splineUrl) setAttributes({ splineUrl: '' });
 			return;
 		}
 
-		// If they didn't actually change it, don't re-validate.
 		if (trimmed === splineUrl) {
 			setSidebarError(null);
 			return;
@@ -496,12 +467,12 @@ export default function Edit({ attributes, setAttributes }) {
 						<MediaUploadCheck>
 							<MediaUpload
 								onSelect={(media) => setAttributes({ fileUrl: media.url })}
-								allowedTypes={['application/json', 'application/octet-stream']}
+								allowedTypes={allowedTypesForFormat(animationType)}
 								render={({ open }) => (
 									<Button variant="primary" onClick={open}>
 										{fileUrl
 											? __('Replace File', 'rive-spline-block')
-											: __('Upload Animation File', 'rive-spline-block')}
+											: uploadLabel()}
 									</Button>
 								)}
 							/>
@@ -643,7 +614,7 @@ export default function Edit({ attributes, setAttributes }) {
 							<MediaUploadCheck>
 								<MediaUpload
 									onSelect={(media) => setAttributes({ fileUrl: media.url })}
-									allowedTypes={['application/json', 'application/octet-stream']}
+									allowedTypes={allowedTypesForFormat(animationType)}
 									render={({ open }) => (
 										<Button variant="primary" onClick={open}>
 											{uploadLabel()}

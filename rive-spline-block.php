@@ -1,11 +1,11 @@
 <?php
 /**
-* Plugin Name:       Rive / Spline / Lottie Block
- * Description:       Add interactive motion graphics to your WordPress site. Supports Rive, Spline, and Lottie — no code required.
- * Version:           0.1.0
+ * Plugin Name:       Rive / Spline / Lottie Block
+ * Description:       Add interactive motion graphics to your WordPress site. Supports Rive, Spline, Lottie, and standalone HTML — no code required.
+ * Version:           0.2.0
  * Requires at least: 6.8
  * Requires PHP:      7.4
- * Author:            The WordPress Contributors
+ * Author:            Automattic | Creative Lab
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       rive-spline-block
@@ -28,11 +28,17 @@ function create_block_rive_spline_block_block_init() {
 	wp_register_block_types_from_metadata_collection( __DIR__ . '/build', __DIR__ . '/build/blocks-manifest.php' );
 }
 add_action( 'init', 'create_block_rive_spline_block_block_init' );
-// Allow Rive, Spline, and Lottie/JSON file uploads
+// Allow Rive, Spline, Lottie/JSON, and standalone HTML file uploads.
+//
+// HTML uploads are normally disabled by WordPress for security. We
+// whitelist them only for users who can already upload arbitrary code
+// via the Custom HTML block — the trust model is the same.
 function rive_spline_block_allowed_mime_types( $mimes ) {
     $mimes['json'] = 'application/json';
     $mimes['riv']  = 'application/octet-stream';
     $mimes['splinecode'] = 'application/octet-stream';
+    $mimes['html'] = 'text/html';
+    $mimes['htm']  = 'text/html';
     return $mimes;
 }
 add_filter( 'upload_mimes', 'rive_spline_block_allowed_mime_types' );
@@ -40,9 +46,15 @@ add_filter( 'upload_mimes', 'rive_spline_block_allowed_mime_types' );
 // Fix MIME type check for these file types
 function rive_spline_block_fix_mime_check( $data, $file, $filename, $mimes ) {
     $ext = pathinfo( $filename, PATHINFO_EXTENSION );
-    if ( in_array( $ext, [ 'json', 'riv', 'splinecode' ] ) ) {
+    if ( in_array( $ext, [ 'json', 'riv', 'splinecode', 'html', 'htm' ] ) ) {
         $data['ext']  = $ext;
-        $data['type'] = $ext === 'json' ? 'application/json' : 'application/octet-stream';
+        if ( $ext === 'json' ) {
+            $data['type'] = 'application/json';
+        } else if ( $ext === 'html' || $ext === 'htm' ) {
+            $data['type'] = 'text/html';
+        } else {
+            $data['type'] = 'application/octet-stream';
+        }
     }
     return $data;
 }

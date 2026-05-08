@@ -28,9 +28,7 @@ function registerForAudioUnlock( riveInstance ) {
 
 // Build a friendly fallback overlay for any animation type. The heading
 // is the same across formats; the hint differs per format because the
-// remediation differs (Spline = wrong URL, Rive/Lottie = bad file).
-//
-// hintHTML may contain inline <strong> tags for emphasis.
+// remediation differs (Spline = wrong URL, Rive/Lottie/HTML = bad file).
 function buildFallbackOverlay( hintHTML ) {
     const overlay = document.createElement( 'div' );
     overlay.className = 'rsb-fallback-overlay';
@@ -63,24 +61,17 @@ function buildFallbackOverlay( hintHTML ) {
     return overlay;
 }
 
-// Format-specific hint copy.
 const SPLINE_HINT = 'Please check if the <strong style="color:#ccccdd">URL</strong> from Spline is <strong style="color:#ccccdd">correct</strong>.';
 const RIVE_HINT = 'Make sure the file is a valid <strong style="color:#ccccdd">.riv</strong> export from Rive.';
 const LOTTIE_HINT = 'Make sure the file is a valid <strong style="color:#ccccdd">Lottie JSON</strong> export.';
+const HTML_HINT = 'Make sure the uploaded <strong style="color:#ccccdd">.html</strong> file is self-contained.';
 
-// Helper: replace the wrapper's contents with a fallback overlay.
-// Used by all three animation types when their load fails.
 function showFallback( wrapper, hintHTML ) {
-    // If a fallback is already showing, don't stack another one.
     if ( wrapper.querySelector( '.rsb-fallback-overlay' ) ) return;
     const overlay = buildFallbackOverlay( hintHTML );
     wrapper.appendChild( overlay );
 }
 
-// Mount a Spline iframe inside the wrapper. If the iframe never fires
-// 'load' within 8 seconds (true network failure), or fires 'error',
-// show the friendly fallback overlay. Primary URL validation happens
-// in the editor (edit.js); this is the runtime safety net.
 function mountSplineIframe( wrapper, splineUrl ) {
     wrapper.innerHTML = '';
 
@@ -105,11 +96,43 @@ function mountSplineIframe( wrapper, splineUrl ) {
         showFallback( wrapper, SPLINE_HINT );
     } );
 
-    // 8s is generous — Spline scenes are usually responsive within
-    // 2-3s on a normal connection. If 'load' hasn't fired by then,
-    // the iframe is genuinely stuck.
     setTimeout( () => {
         if ( ! loaded ) showFallback( wrapper, SPLINE_HINT );
+    }, 8000 );
+}
+
+// Mount an uploaded HTML file inside a sandboxed iframe. The sandbox
+// attribute is set to 'allow-scripts' only — the iframe can run JS
+// (so Three.js etc. work), but cannot access the parent page's DOM,
+// cookies, storage, or navigate the top frame. This matches the
+// security posture WordPress uses for Custom HTML blocks.
+function mountHtmlIframe( wrapper, fileUrl ) {
+    wrapper.innerHTML = '';
+
+    const iframe = document.createElement( 'iframe' );
+    iframe.src = fileUrl;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.border = 'none';
+    iframe.setAttribute( 'sandbox', 'allow-scripts' );
+    iframe.setAttribute( 'loading', 'lazy' );
+    wrapper.appendChild( iframe );
+
+    let loaded = false;
+
+    iframe.addEventListener( 'load', () => {
+        loaded = true;
+    } );
+
+    iframe.addEventListener( 'error', () => {
+        showFallback( wrapper, HTML_HINT );
+    } );
+
+    setTimeout( () => {
+        if ( ! loaded ) showFallback( wrapper, HTML_HINT );
     }, 8000 );
 }
 
@@ -171,11 +194,6 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
                     r.resizeDrawingSurfaceToCanvas();
                 } );
             },
-            // Rive fires onLoadError when:
-            //  - The file at src isn't reachable (404, network)
-            //  - The file isn't a valid .riv (parse failure)
-            //  - The runtime hits an internal error initializing
-            // In any case we treat it the same: show the fallback.
             onLoadError: () => {
                 showFallback( wrapper, RIVE_HINT );
             },
@@ -189,20 +207,22 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
         mountSplineIframe( wrapper, splineUrl );
     }
 
+    if ( animationType === 'html' ) {
+        if ( ! fileUrl ) return;
+        mountHtmlIframe( wrapper, fileUrl );
+    }
+
     if ( animationType === 'lottie' ) {
         const lottieContainer = document.createElement( 'div' );
         lottieContainer.style.width = '100%';
         lottieContainer.style.height = '100%';
         wrapper.appendChild( lottieContainer );
 
-        // Read the new attributes from the block element.
         const loop = block.dataset.loop !== '0';
         const autoplay = block.dataset.autoplay !== '0';
         const playbackSpeed = parseFloat( block.dataset.playbackSpeed ) || 1;
         const trigger = block.dataset.trigger || 'autoplay';
 
-        // For non-autoplay triggers, we load the animation paused
-        // and start it ourselves when the trigger fires.
         const shouldAutoplayOnLoad = autoplay && trigger === 'autoplay';
 
         const anim = lottie.loadAnimation( {
@@ -215,9 +235,6 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
 
         anim.setSpeed( playbackSpeed );
 
-        // Lottie fires 'data_failed' when the JSON can't be fetched
-        // (404, CORS) and 'error' for runtime errors after load.
-        // Both should show the same fallback.
         anim.addEventListener( 'data_failed', () => {
             showFallback( wrapper, LOTTIE_HINT );
         } );
@@ -235,7 +252,6 @@ document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach(
             } );
         }
 
-        // Wire up triggers other than "autoplay".
         if ( autoplay && trigger === 'hover' ) {
             block.addEventListener( 'mouseenter', () => anim.play() );
             block.addEventListener( 'mouseleave', () => anim.pause() );
