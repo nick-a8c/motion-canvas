@@ -22,10 +22,17 @@ For how the plugin is built, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### The Motion Layout block (`src/motion-layout/`)
 - Inline configuration UI (grid size, layout selection, layout preview, scroll reveal)
+- Grid size capped at **4 rows × 3 columns**
 - Four templates: Uniform, Wide-middle, Banded, Asymmetric
 - Live preview that mirrors the actual output structure including merged cells
 - "Insert layout" transforms the block into the real Group structure via `replaceBlocks`
-- Asymmetric at 3+ rows uses nested grid Groups for true tall-cell rendering
+- **Aspect ratios per cell shape:** wide cells (colSpan > 1) → 16/9, tall cells (rowSpan > 1) → 9/16, normal cells → 1/1
+- **Three output paths for the Asymmetric template:**
+  - 2×N (no tall cell): Path A — one Columns block per row, wide top via column width %, plain Group wrapper
+  - rows≥3, cols=2 (tall left cell, single right column): **stacked path** — Stack > [Columns(wide top), Columns(tall left + Stack of right cells)]
+  - rows≥3, cols≥3 (tall left cell, grid of right cells): grid path — Stack > [constrained top row, 2-column grid Group containing tall left + nested grid for right cells]
+- Both Stack-wrapped paths use `justifyContent: stretch` and `flexWrap: nowrap`
+- Outer Stack is applied only when there's an actual tall cell
 
 ### Edit-mode controls (`src/motion-layout-builder/`)
 - `editor.BlockEdit` filter injects Scroll reveal panel into builder Group inspectors
@@ -46,7 +53,7 @@ Recorded after the demo page exists.
 ## Polish tasks (low priority, none blocking)
 
 - **Block inserter preview for Motion Layout.** The block currently shows a generic "No preview available" placeholder when hovered in the inserter. A custom rendering of the configuration UI in miniature would be polish.
-- **Cadence "By row" / "By column" on Path-B Asymmetric output.** Currently falls through to whole-block animation since the grid output isn't row/column-shaped at the DOM level. Would require inspecting `grid-row` / `grid-column` styles at runtime to compute meaningful row/column groupings.
+- **Cadence "By row" / "By column" on Path-B Asymmetric output.** Currently falls through to whole-block animation since the grid output isn't row/column-shaped at the DOM level. Would require inspecting `grid-row` / `grid-column` styles at runtime to compute meaningful row/column groupings. (The new stacked path may have similar limitations — worth verifying.)
 - **Folder rename.** `src/motion-layout-builder/` no longer contains a builder. Renaming would touch webpack and PHP enqueue paths; cosmetic.
 
 ## How to resume
@@ -62,6 +69,9 @@ Hard-refresh WordPress after any change. Restart the watcher if you add or delet
 ## Recent commit history
 
 ```
+Asymmetric: stacked output for cols=2 + stretch wrappers
+Cap Motion Layout grid at 4 rows by 3 columns
+Default 16/9 for wide cells and 9/16 for tall cells
 Add HTML format to Motion Layout cell type dropdown
 Asymmetric at 3+ rows: emit nested grid Groups for true tall-cell rendering
 Fix Motion Layout preview rendering: wrap dropdowns so grid spans apply to actual grid items

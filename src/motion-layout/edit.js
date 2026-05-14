@@ -74,27 +74,39 @@ const buildCells = ( rows, columns, previous = [] ) => {
 	return next;
 };
 
-const createCellBlock = ( cell ) => {
+const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
+	// Aspect ratio depends on the cell's shape in the grid:
+	//   - Wide cells (colSpan > 1): 16/9.
+	//   - Tall cells (rowSpan > 1): 9/16.
+	//   - Otherwise: 1/1.
+	// If a cell is both wide and tall (not currently produced by any
+	// template), wide wins.
+	let aspectRatio = '1/1';
+	if ( colSpan > 1 ) {
+		aspectRatio = '16/9';
+	} else if ( rowSpan > 1 ) {
+		aspectRatio = '9/16';
+	}
 	switch ( cell.type ) {
 		case 'rive':
 			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'rive',
-				aspectRatio: '1/1',
+				aspectRatio,
 			} );
 		case 'spline':
 			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'spline',
-				aspectRatio: '1/1',
+				aspectRatio,
 			} );
 		case 'lottie':
 			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'lottie',
-				aspectRatio: '1/1',
+				aspectRatio,
 			} );
             case 'html':
 			return createBlock( 'create-block/rive-spline-block', {
 				animationType: 'html',
-				aspectRatio: '1/1',
+				aspectRatio,
 			} );
 		case 'paragraph':
 			return createBlock( 'core/paragraph', {
@@ -157,9 +169,12 @@ const buildColumnsLayout = ( rows, columns, cells, plan, covered ) => {
 			if ( covered.has( cellIndex ) ) continue;
 
 			const cell = cells[ cellIndex ] || { type: 'empty' };
-			const innerBlock = createCellBlock( cell );
 
 			const merge = getMergeAtAnchor( plan, r, c );
+			const colSpan = merge ? merge.colSpan : 1;
+			const rowSpan = merge ? merge.rowSpan : 1;
+			const innerBlock = createCellBlock( cell, colSpan, rowSpan );
+
 			const columnAttrs = { verticalAlignment: 'center' };
 
 			if ( merge && merge.colSpan > 1 ) {
@@ -186,6 +201,63 @@ const buildColumnsLayout = ( rows, columns, cells, plan, covered ) => {
 	return rowBlocks;
 };
 
+const buildAsymmetricStackedLayout = ( rows, columns, cells ) => {
+	// Row 0 — wide top.
+	const topCell = cells[ 0 ] || { type: 'empty' };
+	const topRow = createBlock(
+		'core/columns',
+		{ verticalAlignment: 'center' },
+		[
+			createBlock(
+				'core/column',
+				{ verticalAlignment: 'center' },
+				[ createCellBlock( topCell, columns ) ]
+			),
+		]
+	);
+
+	// Tall left cell — anchor at (1, 0), spans rows 1..rows-1.
+	const tallCellIndex = 1 * columns + 0;
+	const tallCell = cells[ tallCellIndex ] || { type: 'empty' };
+	const tallColumn = createBlock(
+		'core/column',
+		{ verticalAlignment: 'center' },
+		[ createCellBlock( tallCell, 1, rows - 1 ) ]
+	);
+
+	// Right side — cells at (1, 1), (2, 1), ..., (rows-1, 1).
+	const rightCells = [];
+	for ( let r = 1; r < rows; r++ ) {
+		const cellIndex = r * columns + 1;
+		const cell = cells[ cellIndex ] || { type: 'empty' };
+		rightCells.push( createCellBlock( cell ) );
+	}
+	const rightStack = createBlock(
+		'core/group',
+		{
+			layout: {
+				type: 'flex',
+				orientation: 'vertical',
+				justifyContent: 'center',
+			},
+		},
+		rightCells
+	);
+	const rightColumn = createBlock(
+		'core/column',
+		{ verticalAlignment: 'center' },
+		[ rightStack ]
+	);
+
+	const bottomRow = createBlock(
+		'core/columns',
+		{ verticalAlignment: 'center' },
+		[ tallColumn, rightColumn ]
+	);
+
+	return [ topRow, bottomRow ];
+};
+
 const buildAsymmetricGridLayout = ( rows, columns, cells ) => {
 	// Top wide row: one cell, full width.
 	// In the user's reference structure this was a "constrained" Group
@@ -195,7 +267,7 @@ const buildAsymmetricGridLayout = ( rows, columns, cells ) => {
 	const topRowBlock = createBlock(
 		'core/group',
 		{ layout: { type: 'constrained' } },
-		[ createCellBlock( topCell ) ]
+		[ createCellBlock( topCell, columns ) ]
 	);
 
 	// Tall left cell: anchor at (1, 0). Its content goes directly
@@ -203,7 +275,7 @@ const buildAsymmetricGridLayout = ( rows, columns, cells ) => {
 	// right-side grid, CSS Grid stretches both children to equal height.
 	const tallCellIndex = 1 * columns + 0;
 	const tallCell = cells[ tallCellIndex ] || { type: 'empty' };
-	const tallCellBlock = createCellBlock( tallCell );
+	const tallCellBlock = createCellBlock( tallCell, 1, rows - 1 );
 
 	// Right side: rows 1..rows-1, cols 1..cols-1. (rows-1) × (cols-1)
 	// cells, in row-major order. These go into a nested Grid 2 with
@@ -252,21 +324,36 @@ const buildLayoutBlocks = ( rows, columns, cells, reveal, templateId ) => {
 	const covered = getCoveredCells( plan, rows, columns );
 
 	// Decide which output structure to use.
+	const useAsymmetricStacked =
+		templateId === TEMPLATE_ASYMMETRIC && rows >= 3 && columns === 2;
 	const useAsymmetricGrid =
 		templateId === TEMPLATE_ASYMMETRIC && rows >= 3 && columns >= 3;
 
 	let innerBlocks;
 	let outerLayoutAttr;
 
-	if ( useAsymmetricGrid ) {
-		innerBlocks = buildAsymmetricGridLayout( rows, columns, cells );
-		// Outer wrapper is a vertical flex Group so the top row sits
-		// above Grid 1.
+	if ( useAsymmetricStacked ) {
+		innerBlocks = buildAsymmetricStackedLayout( rows, columns, cells );
+		// Outer wrapper is a Stack (vertical flex) so List View labels
+		// the wrapper as "Stack" matching the reference structure.
+		// Stretch items + nowrap so children fill the wrapper width
+		// and never collapse onto a second visual line.
 		outerLayoutAttr = {
 			type: 'flex',
 			orientation: 'vertical',
-			justifyContent: 'center',
-			flexWrap: 'wrap',
+			justifyContent: 'stretch',
+			flexWrap: 'nowrap',
+		};
+	} else if ( useAsymmetricGrid ) {
+		innerBlocks = buildAsymmetricGridLayout( rows, columns, cells );
+		// Outer wrapper is a vertical flex Group (Stack) so the top
+		// row sits above Grid 1. Stretch + nowrap matches the stacked
+		// path so both Asymmetric outputs feel the same.
+		outerLayoutAttr = {
+			type: 'flex',
+			orientation: 'vertical',
+			justifyContent: 'stretch',
+			flexWrap: 'nowrap',
 		};
 	} else {
 		innerBlocks = buildColumnsLayout( rows, columns, cells, plan, covered );
@@ -444,14 +531,14 @@ export default function Edit( { clientId } ) {
 					value={ rows }
 					onChange={ ( value ) => setRows( value ) }
 					min={ 1 }
-					max={ 6 }
+					max={ 4 }
 				/>
 				<RangeControl
 					label={ __( 'Columns', 'rive-spline-block' ) }
 					value={ columns }
 					onChange={ ( value ) => setColumns( value ) }
 					min={ 1 }
-					max={ 6 }
+					max={ 3 }
 				/>
 			</div>
 
