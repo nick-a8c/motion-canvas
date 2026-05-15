@@ -82,6 +82,12 @@ Lottie animations preview live in the editor. Rive and Spline render only on the
 
 The plugin only loads animation runtimes on pages where the block is actually used. Rive and Lottie runtimes are lightweight; Spline scenes load via iframe in their own context. Scroll-reveal animations are CSS-based and respect reduced-motion preferences.
 
+= Does HTML format work in WordPress Playground? =
+
+Not currently. Playground's service-worker-based filesystem doesn't serve uploaded HTML files as standalone documents, which the HTML format requires. The plugin works fully in Studio, LocalWP, and any production WordPress install. Rive, Spline, and Lottie all work in Playground.
+
+
+== Changelog ==
 == Changelog ==
 
 = 0.2.0 =
