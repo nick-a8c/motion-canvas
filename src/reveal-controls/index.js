@@ -26,28 +26,28 @@ import { PanelBody, SelectControl } from '@wordpress/components';
 import { Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
-const BUILDER_MARKER_CLASS = 'rsb-builder-layout';
+const BUILDER_MARKER_CLASS = 'mb-builder-layout';
 
 const REVEAL_STYLE_OPTIONS = [
-	{ label: __( 'None', 'rive-spline-block' ), value: 'none' },
-	{ label: __( 'Fade', 'rive-spline-block' ), value: 'fade' },
-	{ label: __( 'Fade up', 'rive-spline-block' ), value: 'fade-up' },
-	{ label: __( 'Zoom', 'rive-spline-block' ), value: 'zoom' },
-	{ label: __( 'Blur', 'rive-spline-block' ), value: 'blur' },
-	{ label: __( 'Slide in', 'rive-spline-block' ), value: 'slide' },
+	{ label: __( 'None', 'motion-blocks' ), value: 'none' },
+	{ label: __( 'Fade', 'motion-blocks' ), value: 'fade' },
+	{ label: __( 'Fade up', 'motion-blocks' ), value: 'fade-up' },
+	{ label: __( 'Zoom', 'motion-blocks' ), value: 'zoom' },
+	{ label: __( 'Blur', 'motion-blocks' ), value: 'blur' },
+	{ label: __( 'Slide in', 'motion-blocks' ), value: 'slide' },
 ];
 
 const REVEAL_CADENCE_OPTIONS = [
-	{ label: __( 'Together', 'rive-spline-block' ), value: 'together' },
-	{ label: __( 'By row', 'rive-spline-block' ), value: 'row' },
-	{ label: __( 'By cell', 'rive-spline-block' ), value: 'cell' },
-	{ label: __( 'By column', 'rive-spline-block' ), value: 'column' },
+	{ label: __( 'Together', 'motion-blocks' ), value: 'together' },
+	{ label: __( 'By row', 'motion-blocks' ), value: 'row' },
+	{ label: __( 'By cell', 'motion-blocks' ), value: 'cell' },
+	{ label: __( 'By column', 'motion-blocks' ), value: 'column' },
 ];
 
 const REVEAL_SPEED_OPTIONS = [
-	{ label: __( 'Snappy', 'rive-spline-block' ), value: 'snappy' },
-	{ label: __( 'Smooth', 'rive-spline-block' ), value: 'smooth' },
-	{ label: __( 'Slow & cinematic', 'rive-spline-block' ), value: 'cinematic' },
+	{ label: __( 'Snappy', 'motion-blocks' ), value: 'snappy' },
+	{ label: __( 'Smooth', 'motion-blocks' ), value: 'smooth' },
+	{ label: __( 'Slow & cinematic', 'motion-blocks' ), value: 'cinematic' },
 ];
 
 // Pull current reveal config out of a className string.
@@ -56,9 +56,9 @@ const parseRevealFromClassName = ( className ) => {
 	const result = { style: 'none', cadence: 'cell', speed: 'smooth' };
 	if ( ! className ) return result;
 
-	const styleMatch = className.match( /rsb-reveal--style-([\w-]+)/ );
-	const cadenceMatch = className.match( /rsb-reveal--cadence-([\w-]+)/ );
-	const speedMatch = className.match( /rsb-reveal--speed-([\w-]+)/ );
+	const styleMatch = className.match( /mb-reveal--style-([\w-]+)/ );
+	const cadenceMatch = className.match( /mb-reveal--cadence-([\w-]+)/ );
+	const speedMatch = className.match( /mb-reveal--speed-([\w-]+)/ );
 
 	if ( styleMatch ) result.style = styleMatch[ 1 ];
 	if ( cadenceMatch ) result.cadence = cadenceMatch[ 1 ];
@@ -67,7 +67,7 @@ const parseRevealFromClassName = ( className ) => {
 	return result;
 };
 
-// Strip rsb-reveal-* classes from a className while preserving
+// Strip mb-reveal-* classes from a className while preserving
 // everything else (including the marker class and any user-added
 // classes). Used before re-applying a fresh set of reveal classes.
 const stripRevealClasses = ( className ) => {
@@ -76,7 +76,7 @@ const stripRevealClasses = ( className ) => {
 		.split( /\s+/ )
 		.filter(
 			( cls ) =>
-				cls && ! /^rsb-reveal(?:--|$)/.test( cls )
+				cls && ! /^mb-reveal(?:--|$)/.test( cls )
 		)
 		.join( ' ' );
 };
@@ -97,10 +97,10 @@ const composeClassName = ( existing, reveal ) => {
 
 	const classes = [ ...baseClasses ];
 	if ( reveal && reveal.style && reveal.style !== 'none' ) {
-		classes.push( 'rsb-reveal' );
-		classes.push( `rsb-reveal--style-${ reveal.style }` );
-		classes.push( `rsb-reveal--cadence-${ reveal.cadence }` );
-		classes.push( `rsb-reveal--speed-${ reveal.speed }` );
+		classes.push( 'mb-reveal' );
+		classes.push( `mb-reveal--style-${ reveal.style }` );
+		classes.push( `mb-reveal--cadence-${ reveal.cadence }` );
+		classes.push( `mb-reveal--speed-${ reveal.speed }` );
 	}
 	return classes.join( ' ' );
 };
@@ -136,32 +136,32 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 				<BlockEdit { ...props } />
 				<InspectorControls>
 					<PanelBody
-						title={ __( 'Scroll reveal', 'rive-spline-block' ) }
+						title={ __( 'Scroll reveal', 'motion-blocks' ) }
 						initialOpen={ true }
 					>
 						<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
 							{ __(
 								'Animate this layout into view as visitors scroll. Changes apply live.',
-								'rive-spline-block'
+								'motion-blocks'
 							) }
 						</p>
 
 						<SelectControl
-							label={ __( 'Reveal style', 'rive-spline-block' ) }
+							label={ __( 'Reveal style', 'motion-blocks' ) }
 							value={ reveal.style }
 							options={ REVEAL_STYLE_OPTIONS }
 							onChange={ ( val ) => updateReveal( { style: val } ) }
 						/>
 						<SelectControl
-							label={ __( 'Cadence', 'rive-spline-block' ) }
+							label={ __( 'Cadence', 'motion-blocks' ) }
 							value={ reveal.cadence }
 							options={ REVEAL_CADENCE_OPTIONS }
 							onChange={ ( val ) => updateReveal( { cadence: val } ) }
 							disabled={ ! revealEnabled }
-							help={ __( 'How cells appear relative to each other.', 'rive-spline-block' ) }
+							help={ __( 'How cells appear relative to each other.', 'motion-blocks' ) }
 						/>
 						<SelectControl
-							label={ __( 'Speed', 'rive-spline-block' ) }
+							label={ __( 'Speed', 'motion-blocks' ) }
 							value={ reveal.speed }
 							options={ REVEAL_SPEED_OPTIONS }
 							onChange={ ( val ) => updateReveal( { speed: val } ) }
@@ -172,7 +172,7 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 							<p style={ { marginTop: '12px', color: '#757575', fontSize: '11px', fontStyle: 'italic' } }>
 								{ __(
 									'Reveal runs once when the layout enters view. Visitors who prefer reduced motion will see content appear instantly.',
-									'rive-spline-block'
+									'motion-blocks'
 								) }
 							</p>
 						) }
@@ -185,6 +185,6 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 
 addFilter(
 	'editor.BlockEdit',
-	'create-block/motion-layout-controls',
+	'motion-blocks/motion-layout-controls',
 	withMotionLayoutControls
 );

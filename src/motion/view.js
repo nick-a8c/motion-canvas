@@ -31,7 +31,7 @@ function registerForAudioUnlock( riveInstance ) {
 // remediation differs (Spline = wrong URL, Rive/Lottie/HTML = bad file).
 function buildFallbackOverlay( hintHTML ) {
     const overlay = document.createElement( 'div' );
-    overlay.className = 'rsb-fallback-overlay';
+    overlay.className = 'mb-fallback-overlay';
     overlay.style.position = 'absolute';
     overlay.style.inset = '0';
     overlay.style.background = '#1a1a2e';
@@ -67,7 +67,7 @@ const LOTTIE_HINT = 'Make sure the file is a valid <strong style="color:#ccccdd"
 const HTML_HINT = 'Make sure the uploaded <strong style="color:#ccccdd">.html</strong> file is self-contained.';
 
 function showFallback( wrapper, hintHTML ) {
-    if ( wrapper.querySelector( '.rsb-fallback-overlay' ) ) return;
+    if ( wrapper.querySelector( '.mb-fallback-overlay' ) ) return;
     const overlay = buildFallbackOverlay( hintHTML );
     wrapper.appendChild( overlay );
 }
@@ -136,15 +136,14 @@ function mountHtmlIframe( wrapper, fileUrl ) {
     }, 8000 );
 }
 
-document.querySelectorAll( '.wp-block-create-block-rive-spline-block' ).forEach( ( block ) => {
-    const fileUrl = block.dataset.fileUrl;
+document.querySelectorAll( '.wp-block-motion-blocks-motion' ).forEach( ( block ) => {    const fileUrl = block.dataset.fileUrl;
     const animationType = block.dataset.animationType;
     const aspectRatioAttr = block.dataset.aspectRatio;
 
     if ( ! fileUrl && ! block.dataset.splineUrl ) return;
 
     const wrapper = document.createElement( 'div' );
-    wrapper.className = 'rsb-canvas-wrapper';
+    wrapper.className = 'mb-canvas-wrapper';
     wrapper.style.width = '100%';
     wrapper.style.position = 'relative';
     wrapper.style.aspectRatio = aspectRatioAttr || '16 / 9';

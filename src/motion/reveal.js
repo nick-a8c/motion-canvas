@@ -3,20 +3,20 @@ import './reveal.scss';
 /**
  * Scroll reveal frontend logic.
  *
- * For each .rsb-reveal wrapper on the page:
+ * For each .mb-reveal wrapper on the page:
  *  1. Determine which descendants (or the wrapper itself) should
  *     animate ("targets") based on the cadence.
- *  2. Arm the targets — add .rsb-reveal--armed which puts them in the
+ *  2. Arm the targets — add .mb-reveal--armed which puts them in the
  *     initial CSS state (opacity 0, etc.) defined in reveal.scss.
  *  3. When the wrapper enters the viewport (IntersectionObserver),
  *     wait one frame so the browser commits the initial state, then
- *     stagger-add .rsb-reveal--in to each target.
+ *     stagger-add .mb-reveal--in to each target.
  *
  * Each wrapper reveals once and disconnects.
  */
 
-const READY_CLASS = 'rsb-reveal--armed';
-const ACTIVE_CLASS = 'rsb-reveal--in';
+const READY_CLASS = 'mb-reveal--armed';
+const ACTIVE_CLASS = 'mb-reveal--in';
 
 // Stagger easing exponent. 1.0 = linear (each cell waits the same as
 // the last). Below 1.0 compresses later cells so the tail doesn't drag.
@@ -67,7 +67,7 @@ function collectTargets( wrapper, cadence ) {
 }
 
 function setupReveal( wrapper ) {
-	const cadence = readClassValue( wrapper, 'rsb-reveal--cadence' ) || 'cell';
+	const cadence = readClassValue( wrapper, 'mb-reveal--cadence' ) || 'cell';
 	const targets = collectTargets( wrapper, cadence );
 
 	if ( targets.length === 0 ) return;
@@ -81,7 +81,7 @@ function setupReveal( wrapper ) {
 				if ( ! entry.isIntersecting ) return;
 
 				const computedStyle = window.getComputedStyle( wrapper );
-				const staggerStr = computedStyle.getPropertyValue( '--rsb-stagger' ).trim();
+				const staggerStr = computedStyle.getPropertyValue( '--mb-stagger' ).trim();
 				const staggerMs = parseFloat( staggerStr ) || 150;
 
 				// Wait for two frames before triggering --in. This guarantees
@@ -109,7 +109,7 @@ function setupReveal( wrapper ) {
 }
 
 function init() {
-	const wrappers = document.querySelectorAll( '.rsb-reveal' );
+	const wrappers = document.querySelectorAll( '.mb-reveal' );
 	wrappers.forEach( setupReveal );
 }
 

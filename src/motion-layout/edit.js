@@ -23,42 +23,42 @@ import {
 	isTemplateSupported,
 	getCoveredCells,
 	getMergeAtAnchor,
-} from '../motion-layout-builder/layout-templates';
+} from '../reveal-controls/layout-templates';
 
 const CELL_TYPES = [
-	{ value: 'empty', label: __( 'Empty', 'rive-spline-block' ) },
-	{ value: 'rive', label: __( 'Rive', 'rive-spline-block' ) },
-	{ value: 'spline', label: __( 'Spline', 'rive-spline-block' ) },
-	{ value: 'lottie', label: __( 'Lottie', 'rive-spline-block' ) },
-    { value: 'html', label: __( 'HTML', 'rive-spline-block' ) },
-	{ value: 'paragraph', label: __( 'Paragraph', 'rive-spline-block' ) },
-	{ value: 'heading', label: __( 'Heading', 'rive-spline-block' ) },
-	{ value: 'image', label: __( 'Image', 'rive-spline-block' ) },
+	{ value: 'empty', label: __( 'Empty', 'motion-blocks' ) },
+	{ value: 'rive', label: __( 'Rive', 'motion-blocks' ) },
+	{ value: 'spline', label: __( 'Spline', 'motion-blocks' ) },
+	{ value: 'lottie', label: __( 'Lottie', 'motion-blocks' ) },
+    { value: 'html', label: __( 'HTML', 'motion-blocks' ) },
+	{ value: 'paragraph', label: __( 'Paragraph', 'motion-blocks' ) },
+	{ value: 'heading', label: __( 'Heading', 'motion-blocks' ) },
+	{ value: 'image', label: __( 'Image', 'motion-blocks' ) },
 ];
 
 const REVEAL_STYLE_OPTIONS = [
-	{ label: __( 'None', 'rive-spline-block' ), value: 'none' },
-	{ label: __( 'Fade', 'rive-spline-block' ), value: 'fade' },
-	{ label: __( 'Fade up', 'rive-spline-block' ), value: 'fade-up' },
-	{ label: __( 'Zoom', 'rive-spline-block' ), value: 'zoom' },
-	{ label: __( 'Blur', 'rive-spline-block' ), value: 'blur' },
-	{ label: __( 'Slide in', 'rive-spline-block' ), value: 'slide' },
+	{ label: __( 'None', 'motion-blocks' ), value: 'none' },
+	{ label: __( 'Fade', 'motion-blocks' ), value: 'fade' },
+	{ label: __( 'Fade up', 'motion-blocks' ), value: 'fade-up' },
+	{ label: __( 'Zoom', 'motion-blocks' ), value: 'zoom' },
+	{ label: __( 'Blur', 'motion-blocks' ), value: 'blur' },
+	{ label: __( 'Slide in', 'motion-blocks' ), value: 'slide' },
 ];
 
 const REVEAL_CADENCE_OPTIONS = [
-	{ label: __( 'Together', 'rive-spline-block' ), value: 'together' },
-	{ label: __( 'By row', 'rive-spline-block' ), value: 'row' },
-	{ label: __( 'By cell', 'rive-spline-block' ), value: 'cell' },
-	{ label: __( 'By column', 'rive-spline-block' ), value: 'column' },
+	{ label: __( 'Together', 'motion-blocks' ), value: 'together' },
+	{ label: __( 'By row', 'motion-blocks' ), value: 'row' },
+	{ label: __( 'By cell', 'motion-blocks' ), value: 'cell' },
+	{ label: __( 'By column', 'motion-blocks' ), value: 'column' },
 ];
 
 const REVEAL_SPEED_OPTIONS = [
-	{ label: __( 'Snappy', 'rive-spline-block' ), value: 'snappy' },
-	{ label: __( 'Smooth', 'rive-spline-block' ), value: 'smooth' },
-	{ label: __( 'Slow & cinematic', 'rive-spline-block' ), value: 'cinematic' },
+	{ label: __( 'Snappy', 'motion-blocks' ), value: 'snappy' },
+	{ label: __( 'Smooth', 'motion-blocks' ), value: 'smooth' },
+	{ label: __( 'Slow & cinematic', 'motion-blocks' ), value: 'cinematic' },
 ];
 
-const BUILDER_MARKER_CLASS = 'rsb-builder-layout';
+const BUILDER_MARKER_CLASS = 'mb-builder-layout';
 
 const getCellLabel = ( type ) => {
 	const match = CELL_TYPES.find( ( option ) => option.value === type );
@@ -89,22 +89,22 @@ const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
 	}
 	switch ( cell.type ) {
 		case 'rive':
-			return createBlock( 'create-block/rive-spline-block', {
+			return createBlock( 'motion-blocks/motion', {
 				animationType: 'rive',
 				aspectRatio,
 			} );
 		case 'spline':
-			return createBlock( 'create-block/rive-spline-block', {
+			return createBlock( 'motion-blocks/motion', {
 				animationType: 'spline',
 				aspectRatio,
 			} );
 		case 'lottie':
-			return createBlock( 'create-block/rive-spline-block', {
+			return createBlock( 'motion-blocks/motion', {
 				animationType: 'lottie',
 				aspectRatio,
 			} );
             case 'html':
-			return createBlock( 'create-block/rive-spline-block', {
+			return createBlock( 'motion-blocks/motion', {
 				animationType: 'html',
 				aspectRatio,
 			} );
@@ -112,13 +112,13 @@ const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
 			return createBlock( 'core/paragraph', {
 				placeholder: __(
 					'Drop a thought here. Two short sentences, just enough to balance the motion next door.',
-					'rive-spline-block'
+					'motion-blocks'
 				),
 			} );
 		case 'heading':
 			return createBlock( 'core/heading', {
 				level: 2,
-				placeholder: __( 'Your headline here', 'rive-spline-block' ),
+				placeholder: __( 'Your headline here', 'motion-blocks' ),
 			} );
 		case 'image':
 			return createBlock( 'core/image', {} );
@@ -131,10 +131,10 @@ const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
 const buildClassName = ( reveal ) => {
 	const classes = [ BUILDER_MARKER_CLASS ];
 	if ( reveal && reveal.style && reveal.style !== 'none' ) {
-		classes.push( 'rsb-reveal' );
-		classes.push( `rsb-reveal--style-${ reveal.style }` );
-		classes.push( `rsb-reveal--cadence-${ reveal.cadence }` );
-		classes.push( `rsb-reveal--speed-${ reveal.speed }` );
+		classes.push( 'mb-reveal' );
+		classes.push( `mb-reveal--style-${ reveal.style }` );
+		classes.push( `mb-reveal--cadence-${ reveal.cadence }` );
+		classes.push( `mb-reveal--speed-${ reveal.speed }` );
 	}
 	return classes.join( ' ' );
 };
@@ -442,7 +442,7 @@ const LayoutThumbnail = ( { template, rows, columns, isSelected, isSupported, on
 						fontStyle: 'italic',
 					} }
 				>
-					{ __( 'N/A at this size', 'rive-spline-block' ) }
+					{ __( 'N/A at this size', 'motion-blocks' ) }
 				</div>
 			) }
 			<div
@@ -462,7 +462,7 @@ const LayoutThumbnail = ( { template, rows, columns, isSelected, isSupported, on
 
 export default function Edit( { clientId } ) {
 	const blockProps = useBlockProps( {
-		className: 'rsb-motion-layout-config',
+		className: 'mb-motion-layout-config',
 	} );
 
 	const [ rows, setRows ] = useState( 2 );
@@ -513,28 +513,28 @@ export default function Edit( { clientId } ) {
 
 	return (
 		<div { ...blockProps }>
-			<div className="rsb-motion-layout-config__header">
-				<h3 className="rsb-motion-layout-config__title">
-					{ __( 'Motion Layout', 'rive-spline-block' ) }
+			<div className="mb-motion-layout-config__header">
+				<h3 className="mb-motion-layout-config__title">
+					{ __( 'Motion Layout', 'motion-blocks' ) }
 				</h3>
-				<p className="rsb-motion-layout-config__hint">
-					{ __( 'Configure the layout below, then click "Insert layout."', 'rive-spline-block' ) }
+				<p className="mb-motion-layout-config__hint">
+					{ __( 'Configure the layout below, then click "Insert layout."', 'motion-blocks' ) }
 				</p>
 			</div>
 
-			<div className="rsb-motion-layout-config__section">
-				<h4 className="rsb-motion-layout-config__section-title">
-					{ __( 'Grid size', 'rive-spline-block' ) }
+			<div className="mb-motion-layout-config__section">
+				<h4 className="mb-motion-layout-config__section-title">
+					{ __( 'Grid size', 'motion-blocks' ) }
 				</h4>
 				<RangeControl
-					label={ __( 'Rows', 'rive-spline-block' ) }
+					label={ __( 'Rows', 'motion-blocks' ) }
 					value={ rows }
 					onChange={ ( value ) => setRows( value ) }
 					min={ 1 }
 					max={ 4 }
 				/>
 				<RangeControl
-					label={ __( 'Columns', 'rive-spline-block' ) }
+					label={ __( 'Columns', 'motion-blocks' ) }
 					value={ columns }
 					onChange={ ( value ) => setColumns( value ) }
 					min={ 1 }
@@ -542,11 +542,11 @@ export default function Edit( { clientId } ) {
 				/>
 			</div>
 
-			<div className="rsb-motion-layout-config__section">
-				<h4 className="rsb-motion-layout-config__section-title">
-					{ __( 'Layout selection', 'rive-spline-block' ) }
+			<div className="mb-motion-layout-config__section">
+				<h4 className="mb-motion-layout-config__section-title">
+					{ __( 'Layout selection', 'motion-blocks' ) }
 				</h4>
-				<div className="rsb-motion-layout-config__templates">
+				<div className="mb-motion-layout-config__templates">
 					{ LAYOUT_TEMPLATES.map( ( template ) => {
 						const supported = isTemplateSupported( template.id, rows, columns );
 						const selected = selectedTemplate === template.id;
@@ -565,15 +565,15 @@ export default function Edit( { clientId } ) {
 				</div>
 			</div>
 
-			<div className="rsb-motion-layout-config__section">
-				<h4 className="rsb-motion-layout-config__section-title">
-					{ __( 'Layout preview', 'rive-spline-block' ) }
+			<div className="mb-motion-layout-config__section">
+				<h4 className="mb-motion-layout-config__section-title">
+					{ __( 'Layout preview', 'motion-blocks' ) }
 				</h4>
-				<p className="rsb-motion-layout-config__hint">
-					{ __( 'Click a cell to choose its content type.', 'rive-spline-block' ) }
+				<p className="mb-motion-layout-config__hint">
+					{ __( 'Click a cell to choose its content type.', 'motion-blocks' ) }
 				</p>
 				<div
-					className="rsb-motion-layout-config__preview"
+					className="mb-motion-layout-config__preview"
 					style={ {
 						gridTemplateColumns: `repeat(${ columns }, 1fr)`,
 						gridTemplateRows: `repeat(${ rows }, 1fr)`,
@@ -585,7 +585,7 @@ export default function Edit( { clientId } ) {
 						return (
 							<div
 								key={ visible.index }
-								className="rsb-motion-layout-config__cell-wrap"
+								className="mb-motion-layout-config__cell-wrap"
 								style={ {
 									gridColumnEnd: `span ${ visible.colSpan }`,
 									gridRowEnd: `span ${ visible.rowSpan }`,
@@ -598,7 +598,7 @@ export default function Edit( { clientId } ) {
 											type="button"
 											onClick={ onToggle }
 											aria-expanded={ isOpen }
-											className="rsb-motion-layout-config__cell"
+											className="mb-motion-layout-config__cell"
 											data-cell-type={ cell.type }
 										>
 											{ getCellLabel( cell.type ) }
@@ -627,26 +627,26 @@ export default function Edit( { clientId } ) {
 				</div>
 			</div>
 
-			<div className="rsb-motion-layout-config__section">
-				<h4 className="rsb-motion-layout-config__section-title">
-					{ __( 'Scroll reveal', 'rive-spline-block' ) }
+			<div className="mb-motion-layout-config__section">
+				<h4 className="mb-motion-layout-config__section-title">
+					{ __( 'Scroll reveal', 'motion-blocks' ) }
 				</h4>
 				<SelectControl
-					label={ __( 'Reveal style', 'rive-spline-block' ) }
+					label={ __( 'Reveal style', 'motion-blocks' ) }
 					value={ revealStyle }
 					options={ REVEAL_STYLE_OPTIONS }
 					onChange={ ( val ) => setRevealStyle( val ) }
 				/>
 				<SelectControl
-					label={ __( 'Cadence', 'rive-spline-block' ) }
+					label={ __( 'Cadence', 'motion-blocks' ) }
 					value={ revealCadence }
 					options={ REVEAL_CADENCE_OPTIONS }
 					onChange={ ( val ) => setRevealCadence( val ) }
 					disabled={ ! revealEnabled }
-					help={ __( 'How cells appear relative to each other.', 'rive-spline-block' ) }
+					help={ __( 'How cells appear relative to each other.', 'motion-blocks' ) }
 				/>
 				<SelectControl
-					label={ __( 'Speed', 'rive-spline-block' ) }
+					label={ __( 'Speed', 'motion-blocks' ) }
 					value={ revealSpeed }
 					options={ REVEAL_SPEED_OPTIONS }
 					onChange={ ( val ) => setRevealSpeed( val ) }
@@ -654,13 +654,13 @@ export default function Edit( { clientId } ) {
 				/>
 			</div>
 
-			<div className="rsb-motion-layout-config__actions">
+			<div className="mb-motion-layout-config__actions">
 				<Button
 					variant="primary"
 					onClick={ handleInsert }
-					className="rsb-motion-layout-config__insert"
+					className="mb-motion-layout-config__insert"
 				>
-					{ __( 'Insert layout', 'rive-spline-block' ) }
+					{ __( 'Insert layout', 'motion-blocks' ) }
 				</Button>
 			</div>
 		</div>

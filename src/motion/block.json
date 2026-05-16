@@ -1,9 +1,9 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "create-block/rive-spline-block",
+    "name": "motion-blocks/motion",
     "version": "0.2.0",
-    "title": "Rive / Spline / Lottie",
+    "title": "Animation",
     "category": "media",
     "icon": "format-video",
     "description": "Embed interactive Rive, Spline, or Lottie animations directly in your posts and pages.",
@@ -61,7 +61,7 @@
         }
         
     },
-    "textdomain": "rive-spline-block",
+    "textdomain": "motion-blocks",
     "editorScript": "file:./index.js",
     "editorStyle": "file:./index.css",
     "style": "file:./style-index.css",

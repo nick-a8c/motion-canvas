@@ -3,10 +3,10 @@ import { useBlockProps } from '@wordpress/block-editor';
 const buildRevealClassName = ( style, speed ) => {
     if ( ! style || style === 'none' ) return '';
     return [
-        'rsb-reveal',
-        `rsb-reveal--style-${ style }`,
-        'rsb-reveal--cadence-together',
-        `rsb-reveal--speed-${ speed || 'smooth' }`,
+        'mb-reveal',
+        `mb-reveal--style-${ style }`,
+        'mb-reveal--cadence-together',
+        `mb-reveal--speed-${ speed || 'smooth' }`,
     ].join( ' ' );
 };
 

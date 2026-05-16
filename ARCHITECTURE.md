@@ -10,7 +10,7 @@ This document describes how the plugin works. For session-state and what's curre
 
 The plugin provides three distinct user-facing surfaces, each with its own folder under `src/`:
 
-1. **Rive / Spline / Lottie block** — embeds a single animation in four formats
+1. **Animation block** — embeds a single animation in four formats
 2. **Motion Layout block** — a configuration-only block that builds multi-cell layouts
 3. **Edit-mode reveal controls** — adds a Scroll reveal panel to layouts inserted by the Motion Layout block
 
@@ -21,7 +21,7 @@ These surfaces share one module: a layout-template definitions file used by both
 ## File map
 
 ```
-rive-spline-block.php
+motion-blocks.php
   Plugin entry. Registers blocks via WordPress 6.8's
   wp_register_block_types_from_metadata_collection. MIME whitelist
   for .riv, .json, .splinecode, .html, .htm. Enqueues frontend
@@ -30,7 +30,7 @@ rive-spline-block.php
 readme.txt
   WordPress.org-style readme.
 
-src/rive-spline-block/
+src/motion-blocks/
   block.json     Block metadata
   edit.js        Editor UI: format dropdown, file/URL input, lottie
                  live preview, sidebar inspector, format-switch modal
@@ -41,7 +41,7 @@ src/rive-spline-block/
   reveal.js      Frontend scroll-reveal runtime (IntersectionObserver
                  + cadence stagger calculation)
   reveal.scss    Reveal animation CSS (per-style easing, durations)
-  style.scss     .rsb-builder-layout cell uniformity rules
+  style.scss     .mb-builder-layout cell uniformity rules
   editor.scss    Editor-only styles for the block
 
 src/motion-layout/
@@ -54,7 +54,7 @@ src/motion-layout/
                  never persists
   editor.scss    Configuration UI styling
 
-src/motion-layout-builder/
+src/reveal-controls/
   index.js              editor.BlockEdit filter that injects a
                         "Scroll reveal" inspector panel into
                         builder-marked Group blocks
@@ -62,11 +62,11 @@ src/motion-layout-builder/
                         merge plans, visible-cell computation
 ```
 
-The folder name `motion-layout-builder/` is historical. It originally held a `PluginSidebar`-based builder. After the Day-3 refactor it holds an `editor.BlockEdit` filter and the shared template logic. Renaming would touch webpack and PHP enqueue paths; not worth the churn for a cosmetic improvement.
+The folder name `reveal-controls/` is historical. It originally held a `PluginSidebar`-based builder. After the Day-3 refactor it holds an `editor.BlockEdit` filter and the shared template logic. Renaming would touch webpack and PHP enqueue paths; not worth the churn for a cosmetic improvement.
 
 ---
 
-## The Rive / Spline / Lottie block
+## The Animation block
 
 A single content block that embeds one animation. The user picks one format at a time.
 
@@ -97,7 +97,7 @@ This is the most non-obvious technical detail in the plugin. Read this before to
 2. On mount: imperatively creates an inner div via `document.createElement`, appends it to the wrapper, hands the inner div to lottie
 3. On cleanup: destroys the lottie animation, then `wrapper.removeChild(innerDiv)`
 
-React only sees the outer wrapper. The inner div with all of lottie's SVG mutations is invisible to its reconciler. See `src/rive-spline-block/edit.js`, the `useEffect` keyed on `[fileUrl, animationType]`.
+React only sees the outer wrapper. The inner div with all of lottie's SVG mutations is invisible to its reconciler. See `src/motion-blocks/edit.js`, the `useEffect` keyed on `[fileUrl, animationType]`.
 
 This pattern is non-negotiable. Removing it brings back the `removeChild` crash on format switching.
 
@@ -158,13 +158,13 @@ Each section's UI is a regular React component with its own state. State doesn't
 
 A subtle CSS Grid placement bug bit us during development: WordPress's `Dropdown` component renders an internal wrapper `<div class="components-dropdown">` between our grid container and the cell button. When inline `gridColumn`/`gridRow` styles were applied to the button, the wrapper div became the actual grid item, ignoring our spans, and CSS Grid auto-placement put cells in the wrong slots.
 
-**Fix.** Wrap each `Dropdown` in a div we control (`rsb-motion-layout-config__cell-wrap`). Apply the grid spans to that wrapper. The dropdown's internal wrapper now lives inside ours and doesn't fight grid layout. SCSS makes the dropdown's wrapper `width: 100%; height: 100%` so the inner button still fills the cell. See `src/motion-layout/edit.js` and `editor.scss`.
+**Fix.** Wrap each `Dropdown` in a div we control (`mb-motion-layout-config__cell-wrap`). Apply the grid spans to that wrapper. The dropdown's internal wrapper now lives inside ours and doesn't fight grid layout. SCSS makes the dropdown's wrapper `width: 100%; height: 100%` so the inner button still fills the cell. See `src/motion-layout/edit.js` and `editor.scss`.
 
 This bug is worth knowing about because **anywhere we want a WP component to be a grid/flex item, we may need a wrapper**. WP's `Button`, `Card`, etc. likely have similar internal markup.
 
 ### Layout templates
 
-Four templates, defined in `src/motion-layout-builder/layout-templates.js` as merge-rule functions that take `(rows, cols)` and return a "merge plan" — a list of merged regions, or `null` if the size doesn't fit the template:
+Four templates, defined in `src/reveal-controls/layout-templates.js` as merge-rule functions that take `(rows, cols)` and return a "merge plan" — a list of merged regions, or `null` if the size doesn't fit the template:
 
 - **Uniform** — no merging; every cell is 1×1. Always valid.
 - **Wide middle** — middle row spans full width. Requires odd row count (≥3) and ≥2 columns.
@@ -193,7 +193,7 @@ For each grid row, emit one `core/columns` block. For each visible anchor in tha
 Output skeleton:
 
 ```
-core/group  (.rsb-builder-layout, reveal classes, align: wide)
+core/group  (.mb-builder-layout, reveal classes, align: wide)
 ├── core/columns
 │   ├── core/column → cell content
 │   └── core/column → cell content
@@ -213,7 +213,7 @@ The structural problem: `core/columns` can't make a column inside one row span v
 The solution leverages WordPress's grid-layout Group block (`core/group` with `layout.type: "grid"`):
 
 ```
-core/group  (outer Stack — flex vertical, .rsb-builder-layout, reveal classes, align: wide)
+core/group  (outer Stack — flex vertical, .mb-builder-layout, reveal classes, align: wide)
 ├── core/group  (constrained — wraps the wide top row)
 │   └── cell content
 └── core/group  (Grid 1 — layout: { type: grid, columnCount: 2 }, align: wide)
@@ -226,13 +226,13 @@ How it works: Grid 1 has exactly 2 children — the left cell content and Grid 2
 
 This pattern was reverse-engineered from a manual layout built in WordPress to verify it was achievable with core blocks alone. The outer Group needs `layout.type: "flex"` with `orientation: "vertical"` so its children stack vertically; otherwise WordPress's default constrained layout would lay them out unpredictably.
 
-Both paths tag the outer Group with the `rsb-builder-layout` marker class plus reveal classes if applicable, so the same `style.scss` rules and the same edit-mode inspector apply regardless of which path produced the layout.
+Both paths tag the outer Group with the `mb-builder-layout` marker class plus reveal classes if applicable, so the same `style.scss` rules and the same edit-mode inspector apply regardless of which path produced the layout.
 
 ---
 
 ## Edit-mode reveal controls
 
-`src/motion-layout-builder/index.js` registers an `editor.BlockEdit` filter that wraps every block's edit component. For blocks that are `core/group` AND carry the `rsb-builder-layout` marker class, the filter injects an `<InspectorControls>` panel with Scroll reveal style/cadence/speed dropdowns.
+`src/reveal-controls/index.js` registers an `editor.BlockEdit` filter that wraps every block's edit component. For blocks that are `core/group` AND carry the `mb-builder-layout` marker class, the filter injects an `<InspectorControls>` panel with Scroll reveal style/cadence/speed dropdowns.
 
 Reveal config is read from and written to the Group's `className` directly. The filter:
 
@@ -249,9 +249,9 @@ For blocks that are not builder Groups, the filter is a pure pass-through. No DO
 
 CSS-driven scroll reveals via IntersectionObserver. `reveal.js`:
 
-1. Queries the document for `.rsb-reveal` elements
+1. Queries the document for `.mb-reveal` elements
 2. Observes them with IntersectionObserver
-3. Adds `.rsb-reveal--in` when an element enters the viewport
+3. Adds `.mb-reveal--in` when an element enters the viewport
 4. Computes per-cell stagger delays based on cadence and applies them as `animation-delay` inline styles before the element enters view
 
 Cadence options:
@@ -279,7 +279,7 @@ Slide direction is cadence-aware: when cadence is "By column," slide direction s
 
 The cadence target collection in `reveal.js` queries `:scope > .wp-block-columns` to find rows and `:scope > .wp-block-column` to find cells. This works for Path A (`core/columns`-based output).
 
-Path B (Asymmetric grid) doesn't have those elements. The reveal still fires on the outer Group (it has `.rsb-reveal` and the runtime treats it as a single element), but cadence "By row" / "By column" falls through to a whole-block animation since the structure isn't row/column-shaped.
+Path B (Asymmetric grid) doesn't have those elements. The reveal still fires on the outer Group (it has `.mb-reveal` and the runtime treats it as a single element), but cadence "By row" / "By column" falls through to a whole-block animation since the structure isn't row/column-shaped.
 
 This is an intentional simplification, not a bug. Making cadence semantically meaningful for the grid output would require introspecting `grid-row` / `grid-column` styles at runtime — possible, but not urgent. "By cell" cadence would naturally work if we updated the selector; it's left as a polish task for a future session.
 
@@ -303,4 +303,4 @@ Watcher restarts: required when adding/deleting `block.json` files or changing `
 2. **Cadence "By row" / "By column" on Path-B Asymmetric output** falls through to whole-block animation. Documented above.
 3. **No editor preview for Rive, Spline, or HTML.** Out of scope by design — too heavy or too risky to mount during composition.
 4. **Spline cross-origin opacity.** The plugin can't read Spline's iframe content from its own origin. Load-error detection is timing-based (8s timeout) rather than DOM-based.
-5. **The `motion-layout-builder/` folder name is historical.** Renaming would touch the webpack and PHP enqueue paths.
+5. **The `reveal-controls/` folder name is historical.** Renaming would touch the webpack and PHP enqueue paths.

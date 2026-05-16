@@ -14,14 +14,14 @@ module.exports = configs.map( ( config ) => {
 			const original = config.entry( ...args );
 			return {
 				...original,
-				'motion-layout-builder/index': path.resolve(
+				'reveal-controls/index': path.resolve(
 					process.cwd(),
-					'src/motion-layout-builder',
+					'src/reveal-controls',
 					'index.js'
 				),
-				'rive-spline-block/reveal': path.resolve(
+				'motion/reveal': path.resolve(
 					process.cwd(),
-					'src/rive-spline-block',
+					'src/motion',
 					'reveal.js'
 				),
 			};

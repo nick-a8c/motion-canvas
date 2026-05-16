@@ -1,0 +1,57 @@
+.wp-block-motion-blocks-motion {
+    display: inline-block !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/**
+ * Layout builder polish — when the block sits inside a core/column,
+ * give it room to breathe and center it nicely.
+ */
+
+// Center the block inside its parent column in the editor.
+.wp-block-column > .wp-block-motion-blocks-motion {
+	margin-left: auto;
+	margin-right: auto;
+	width: 100%;
+}
+
+// When the block has no file uploaded yet, the editor placeholder
+// should feel like a real slot — not a collapsed sliver.
+.wp-block-motion-blocks-motion {
+	.components-placeholder {
+		min-height: 180px;
+	}
+}/**
+/**
+ * Placeholder styles.
+ *
+ * Light always — the WP editor canvas iframe doesn't reliably inherit
+ * the OS color scheme, so an OS-aware setup ends up dark for most
+ * users in practice. Keeping it light is consistent with the rest of
+ * the editor; the "motion slot" identity is carried by the icon and
+ * copy rather than the background.
+ */
+ .mb-empty-placeholder,
+ .mb-frontend-placeholder {
+	 background: #F0F0F0;
+	 border: 1px solid #DCDCDC;
+	 border-radius: 20px;
+ }
+ 
+ .mb-empty-placeholder__icon-bg {
+	 fill: #dcdcde;
+ }
+ .mb-empty-placeholder__icon-mark {
+	 fill: #2271b1;
+ }
+ 
+ .mb-empty-placeholder__title {
+	 color: #1e1e1e;
+ }
+ 
+ .mb-empty-placeholder__hint,
+ .mb-frontend-placeholder__text {
+	 color: #757575;
+ }

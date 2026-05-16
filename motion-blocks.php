@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Rive / Spline / Lottie Block
+ * Plugin Name:       Motion
  * Description:       Add interactive motion graphics to your WordPress site. Supports Rive, Spline, Lottie, and standalone HTML — no code required.
  * Version:           0.2.0
  * Requires at least: 6.8
@@ -8,7 +8,7 @@
  * Author:            Automattic | Creative Lab
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       rive-spline-block
+ * Text Domain:       motion-blocks
  *
  * @package CreateBlock
  */
@@ -24,16 +24,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @see https://make.wordpress.org/core/2025/03/13/more-efficient-block-type-registration-in-6-8/
  * @see https://make.wordpress.org/core/2024/10/17/new-block-type-registration-apis-to-improve-performance-in-wordpress-6-7/
  */
-function create_block_rive_spline_block_block_init() {
+function create_block_motion_blocks_block_init() {
 	wp_register_block_types_from_metadata_collection( __DIR__ . '/build', __DIR__ . '/build/blocks-manifest.php' );
 }
-add_action( 'init', 'create_block_rive_spline_block_block_init' );
+add_action( 'init', 'create_block_motion_blocks_block_init' );
 // Allow Rive, Spline, Lottie/JSON, and standalone HTML file uploads.
 //
 // HTML uploads are normally disabled by WordPress for security. We
 // whitelist them only for users who can already upload arbitrary code
 // via the Custom HTML block — the trust model is the same.
-function rive_spline_block_allowed_mime_types( $mimes ) {
+function motion_blocks_allowed_mime_types( $mimes ) {
     $mimes['json'] = 'application/json';
     $mimes['riv']  = 'application/octet-stream';
     $mimes['splinecode'] = 'application/octet-stream';
@@ -41,10 +41,10 @@ function rive_spline_block_allowed_mime_types( $mimes ) {
     $mimes['htm']  = 'text/html';
     return $mimes;
 }
-add_filter( 'upload_mimes', 'rive_spline_block_allowed_mime_types' );
+add_filter( 'upload_mimes', 'motion_blocks_allowed_mime_types' );
 
 // Fix MIME type check for these file types
-function rive_spline_block_fix_mime_check( $data, $file, $filename, $mimes ) {
+function motion_blocks_fix_mime_check( $data, $file, $filename, $mimes ) {
     $ext = pathinfo( $filename, PATHINFO_EXTENSION );
     if ( in_array( $ext, [ 'json', 'riv', 'splinecode', 'html', 'htm' ] ) ) {
         $data['ext']  = $ext;
@@ -58,12 +58,12 @@ function rive_spline_block_fix_mime_check( $data, $file, $filename, $mimes ) {
     }
     return $data;
 }
-add_filter( 'wp_check_filetype_and_ext', 'rive_spline_block_fix_mime_check', 10, 4 );
+add_filter( 'wp_check_filetype_and_ext', 'motion_blocks_fix_mime_check', 10, 4 );
 /**
  * Enqueue the Motion Layout Builder panel in the block editor.
  */
-function rive_spline_block_enqueue_layout_builder() {
-	$asset_file = plugin_dir_path( __FILE__ ) . 'build/motion-layout-builder/index.asset.php';
+function motion_blocks_enqueue_layout_builder() {
+	$asset_file = plugin_dir_path( __FILE__ ) . 'build/reveal-controls/index.asset.php';
 
 	if ( ! file_exists( $asset_file ) ) {
 		return;
@@ -72,21 +72,21 @@ function rive_spline_block_enqueue_layout_builder() {
 	$asset = include $asset_file;
 
 	wp_enqueue_script(
-		'motion-layout-builder',
-		plugins_url( 'build/motion-layout-builder/index.js', __FILE__ ),
+		'reveal-controls',
+		plugins_url( 'build/reveal-controls/index.js', __FILE__ ),
 		$asset['dependencies'],
 		$asset['version'],
 		true
 	);
 }
-add_action( 'enqueue_block_editor_assets', 'rive_spline_block_enqueue_layout_builder' );
+add_action( 'enqueue_block_editor_assets', 'motion_blocks_enqueue_layout_builder' );
 /**
  * Enqueue the scroll-reveal script and styles on the frontend.
  * Loaded on every front-end page; the script is small and exits
- * immediately if no .rsb-reveal elements exist on the page.
+ * immediately if no .mb-reveal elements exist on the page.
  */
-function rive_spline_block_enqueue_reveal() {
-	$asset_file = plugin_dir_path( __FILE__ ) . 'build/rive-spline-block/reveal.asset.php';
+function motion_blocks_enqueue_reveal() {
+	$asset_file = plugin_dir_path( __FILE__ ) . 'build/motion/reveal.asset.php';
 
 	if ( ! file_exists( $asset_file ) ) {
 		return;
@@ -95,22 +95,22 @@ function rive_spline_block_enqueue_reveal() {
 	$asset = include $asset_file;
 
 	wp_enqueue_script(
-		'rsb-reveal',
-		plugins_url( 'build/rive-spline-block/reveal.js', __FILE__ ),
+		'mb-reveal',
+		plugins_url( 'build/motion/reveal.js', __FILE__ ),
 		$asset['dependencies'],
 		$asset['version'],
 		true
 	);
 
 	// The CSS is bundled into a sibling file by wp-scripts.
-	$css_path = plugin_dir_path( __FILE__ ) . 'build/rive-spline-block/reveal.css';
+	$css_path = plugin_dir_path( __FILE__ ) . 'build/motion/reveal.css';
 	if ( file_exists( $css_path ) ) {
 		wp_enqueue_style(
-			'rsb-reveal',
-			plugins_url( 'build/rive-spline-block/reveal.css', __FILE__ ),
+			'mb-reveal',
+			plugins_url( 'build/motion/reveal.css', __FILE__ ),
 			array(),
 			$asset['version']
 		);
 	}
 }
-add_action( 'wp_enqueue_scripts', 'rive_spline_block_enqueue_reveal' );
+add_action( 'wp_enqueue_scripts', 'motion_blocks_enqueue_reveal' );

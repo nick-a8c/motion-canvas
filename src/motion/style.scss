@@ -1,9 +1,9 @@
-.wp-block-create-block-rive-spline-block {
+.wp-block-motion-blocks-motion {
     // Default: respect content flow.
     // Wrapper inside takes 100% of this width and applies aspect-ratio.
     max-width: 100%;
 
-    .rsb-canvas-wrapper {
+    .mb-canvas-wrapper {
         // Defensive: even if inline styles fail, don't collapse to 0.
         min-height: 1px;
         overflow: hidden;
@@ -27,7 +27,7 @@
  * Layout builder polish — frontend version.
  * Match the editor: center the block inside its column, fill the width.
  */
-.wp-block-column > .wp-block-create-block-rive-spline-block {
+.wp-block-column > .wp-block-motion-blocks-motion {
 	margin-left: auto;
 	margin-right: auto;
 	width: 100%;
@@ -48,9 +48,9 @@
  *    stretches to fill the column.
  *  - Images use object-fit cover so they crop to fit instead of letterboxing.
  *
- * Scoped to .rsb-builder-layout so we never affect non-builder Group blocks.
+ * Scoped to .mb-builder-layout so we never affect non-builder Group blocks.
  */
-.rsb-builder-layout {
+.mb-builder-layout {
 
     // Each row stretches its columns so all cells in a row share height.
     .wp-block-columns {
@@ -88,7 +88,7 @@
     // Our animation block respects its aspectRatio attribute already, so
     // we don't force its height. But override the default 600px max-width
     // cap so it fills the cell.
-    .wp-block-create-block-rive-spline-block {
+    .wp-block-motion-blocks-motion {
         max-width: 100% !important;
     }
 }

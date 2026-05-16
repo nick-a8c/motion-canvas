@@ -1,21 +1,21 @@
-# Rive / Spline / Lottie Block
+# Motion
 
 A WordPress plugin that adds interactive motion graphics to posts and pages. Supports four animation formats — Rive, Spline, Lottie, and standalone HTML — in a single block. Also includes a Motion Layout composer for arranging animations in scroll-revealed multi-cell layouts.
 
 ## Download
 
-**[→ Download the latest release (rive-spline-block.zip)](https://github.com/nick-a8c/rive-spline-block/releases/latest)**
+**[→ Download the latest release (motion-blocks.zip)](https://github.com/nick-a8c/motion-blocks/releases/latest)**
 
-The release page above always points to the newest version. Click the `rive-spline-block.zip` asset under "Assets" to download.
+The release page above always points to the newest version. Click the `motion-blocks.zip` asset under "Assets" to download.
 
 ## Install
 
-1. Download `rive-spline-block.zip` from the [releases page](https://github.com/nick-a8c/rive-spline-block/releases/latest).
+1. Download `motion-blocks.zip` from the [releases page](https://github.com/nick-a8c/motion-blocks/releases/latest).
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**.
 3. Click **Choose File**, select the downloaded zip, then click **Install Now**.
 4. Click **Activate Plugin** when the install finishes.
 
-That's it. The block is now available in the editor under the "Media" category as **Rive / Spline / Lottie**, and the **Motion Layout** block under the "Design" category.
+That's it. The block is now available in the editor under the "Media" category as **Animation**, and the **Motion Layout** block under the "Design" category.
 
 ## Requirements
 
@@ -36,8 +36,8 @@ See [`readme.txt`](./readme.txt) for the full feature list, FAQ, and changelog.
 If you want to build from source rather than use the release zip:
 
 ```bash
-git clone https://github.com/nick-a8c/rive-spline-block.git
-cd rive-spline-block
+git clone https://github.com/nick-a8c/motion-blocks.git
+cd motion-blocks
 npm install
 npm start          # watcher: rebuilds on save
 # or

@@ -12,7 +12,7 @@ For how the plugin is built, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## What's done
 
-### The block (`src/rive-spline-block/`)
+### The block (`src/motion-blocks/`)
 - Four formats: Rive (.riv), Spline (URL), Lottie (.json), HTML (.html)
 - Format-switching modal with content preservation warning
 - Spline URL validation (paste-time + blur-time, reachability check + AccessDenied detection)
@@ -34,7 +34,7 @@ For how the plugin is built, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 - Both Stack-wrapped paths use `justifyContent: stretch` and `flexWrap: nowrap`
 - Outer Stack is applied only when there's an actual tall cell
 
-### Edit-mode controls (`src/motion-layout-builder/`)
+### Edit-mode controls (`src/reveal-controls/`)
 - `editor.BlockEdit` filter injects Scroll reveal panel into builder Group inspectors
 - Old `PluginSidebar` (the four-square toolbar icon) removed
 
@@ -54,11 +54,11 @@ Recorded after the demo page exists.
 
 - **Block inserter preview for Motion Layout.** The block currently shows a generic "No preview available" placeholder when hovered in the inserter. A custom rendering of the configuration UI in miniature would be polish.
 - **Cadence "By row" / "By column" on Path-B Asymmetric output.** Currently falls through to whole-block animation since the grid output isn't row/column-shaped at the DOM level. Would require inspecting `grid-row` / `grid-column` styles at runtime to compute meaningful row/column groupings. (The new stacked path may have similar limitations — worth verifying.)
-- **Folder rename.** `src/motion-layout-builder/` no longer contains a builder. Renaming would touch webpack and PHP enqueue paths; cosmetic.
+- **Folder rename.** `src/reveal-controls/` no longer contains a builder. Renaming would touch webpack and PHP enqueue paths; cosmetic.
 
 ## How to resume
 
-Workspace path: `~/Desktop/RSM/Saiyan Project/rive-spline-block`
+Workspace path: `~/Desktop/RSM/Saiyan Project/motion-blocks`
 
 Two terminal tabs:
 - Tab 1: `npm start` (watcher; rebuilds `src/` → `build/`)
