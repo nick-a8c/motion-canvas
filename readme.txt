@@ -1,4 +1,4 @@
-=== Motion ===
+=== Motion Blocks ===
 Contributors: automattic, creativelab
 Tags: animation, motion, rive, spline, lottie, interactive, blocks, gutenberg
 Requires at least: 6.8
