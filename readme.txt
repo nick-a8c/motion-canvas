@@ -4,7 +4,7 @@ Tags: animation, motion, rive, spline, lottie, interactive, blocks, gutenberg
 Requires at least: 6.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,11 @@ Not currently. Playground's service-worker-based filesystem doesn't serve upload
 
 == Changelog ==
 == Changelog ==
+
+= 0.3.0 =
+* Renamed plugin from "Rive / Spline / Lottie" to "Motion"
+* The single-animation block is now called "Animation" (formerly "Rive / Spline / Lottie")
+* Internal block names, slugs, and CSS classes updated to match
 
 = 0.2.0 =
 * Add Motion Layout Builder for grid-based layouts

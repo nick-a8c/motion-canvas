@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Motion
  * Description:       Add interactive motion graphics to your WordPress site. Supports Rive, Spline, Lottie, and standalone HTML — no code required.
- * Version:           0.2.0
+ * Version:           0.3.0
  * Requires at least: 6.8
  * Requires PHP:      7.4
  * Author:            Automattic | Creative Lab
