@@ -1,4 +1,4 @@
-# Motion
+# Motion Blocks
 
 A WordPress plugin that adds interactive motion graphics to posts and pages. Supports four animation formats — Rive, Spline, Lottie, and standalone HTML — in a single block. Also includes a Motion Layout composer for arranging animations in scroll-revealed multi-cell layouts.
 
