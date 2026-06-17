@@ -10,8 +10,9 @@ The release page above always points to the newest version. Click the `motion-ca
 
 <!-- Hero: drop a Ring-layout screenshot at examples/00-cover-ring.png and add it above this line for a Ring hero. -->
 ![motion-canvas](img/block-call-1.jpg)
-![motion-canvas](img/motin-layout-1.jpg)
 ![motion-canvas](img/animation-1.jpg)
+![motion-canvas](img/motin-layout-1.jpg)
+
 
 ## Install
 
