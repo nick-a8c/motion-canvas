@@ -26,36 +26,36 @@ import {
 } from '../reveal-controls/layout-templates';
 
 const CELL_TYPES = [
-	{ value: 'empty', label: __( 'Empty', 'motion-blocks' ) },
-	{ value: 'rive', label: __( 'Rive', 'motion-blocks' ) },
-	{ value: 'spline', label: __( 'Spline', 'motion-blocks' ) },
-	{ value: 'lottie', label: __( 'Lottie', 'motion-blocks' ) },
-    { value: 'html', label: __( 'HTML', 'motion-blocks' ) },
-	{ value: 'paragraph', label: __( 'Paragraph', 'motion-blocks' ) },
-	{ value: 'heading', label: __( 'Heading', 'motion-blocks' ) },
-	{ value: 'image', label: __( 'Image', 'motion-blocks' ) },
+	{ value: 'empty', label: __( 'Empty', 'motion-canvas' ) },
+	{ value: 'rive', label: __( 'Rive', 'motion-canvas' ) },
+	{ value: 'spline', label: __( 'Spline', 'motion-canvas' ) },
+	{ value: 'lottie', label: __( 'Lottie', 'motion-canvas' ) },
+    { value: 'html', label: __( 'HTML', 'motion-canvas' ) },
+	{ value: 'paragraph', label: __( 'Paragraph', 'motion-canvas' ) },
+	{ value: 'heading', label: __( 'Heading', 'motion-canvas' ) },
+	{ value: 'image', label: __( 'Image', 'motion-canvas' ) },
 ];
 
 const REVEAL_STYLE_OPTIONS = [
-	{ label: __( 'None', 'motion-blocks' ), value: 'none' },
-	{ label: __( 'Fade', 'motion-blocks' ), value: 'fade' },
-	{ label: __( 'Fade up', 'motion-blocks' ), value: 'fade-up' },
-	{ label: __( 'Zoom', 'motion-blocks' ), value: 'zoom' },
-	{ label: __( 'Blur', 'motion-blocks' ), value: 'blur' },
-	{ label: __( 'Slide in', 'motion-blocks' ), value: 'slide' },
+	{ label: __( 'None', 'motion-canvas' ), value: 'none' },
+	{ label: __( 'Fade', 'motion-canvas' ), value: 'fade' },
+	{ label: __( 'Fade up', 'motion-canvas' ), value: 'fade-up' },
+	{ label: __( 'Zoom', 'motion-canvas' ), value: 'zoom' },
+	{ label: __( 'Blur', 'motion-canvas' ), value: 'blur' },
+	{ label: __( 'Slide in', 'motion-canvas' ), value: 'slide' },
 ];
 
 const REVEAL_CADENCE_OPTIONS = [
-	{ label: __( 'Together', 'motion-blocks' ), value: 'together' },
-	{ label: __( 'By row', 'motion-blocks' ), value: 'row' },
-	{ label: __( 'By cell', 'motion-blocks' ), value: 'cell' },
-	{ label: __( 'By column', 'motion-blocks' ), value: 'column' },
+	{ label: __( 'Together', 'motion-canvas' ), value: 'together' },
+	{ label: __( 'By row', 'motion-canvas' ), value: 'row' },
+	{ label: __( 'By cell', 'motion-canvas' ), value: 'cell' },
+	{ label: __( 'By column', 'motion-canvas' ), value: 'column' },
 ];
 
 const REVEAL_SPEED_OPTIONS = [
-	{ label: __( 'Snappy', 'motion-blocks' ), value: 'snappy' },
-	{ label: __( 'Smooth', 'motion-blocks' ), value: 'smooth' },
-	{ label: __( 'Slow & cinematic', 'motion-blocks' ), value: 'cinematic' },
+	{ label: __( 'Snappy', 'motion-canvas' ), value: 'snappy' },
+	{ label: __( 'Smooth', 'motion-canvas' ), value: 'smooth' },
+	{ label: __( 'Slow & cinematic', 'motion-canvas' ), value: 'cinematic' },
 ];
 
 const BUILDER_MARKER_CLASS = 'mb-builder-layout';
@@ -89,22 +89,22 @@ const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
 	}
 	switch ( cell.type ) {
 		case 'rive':
-			return createBlock( 'motion-blocks/motion', {
+			return createBlock( 'motion-canvas/motion', {
 				animationType: 'rive',
 				aspectRatio,
 			} );
 		case 'spline':
-			return createBlock( 'motion-blocks/motion', {
+			return createBlock( 'motion-canvas/motion', {
 				animationType: 'spline',
 				aspectRatio,
 			} );
 		case 'lottie':
-			return createBlock( 'motion-blocks/motion', {
+			return createBlock( 'motion-canvas/motion', {
 				animationType: 'lottie',
 				aspectRatio,
 			} );
             case 'html':
-			return createBlock( 'motion-blocks/motion', {
+			return createBlock( 'motion-canvas/motion', {
 				animationType: 'html',
 				aspectRatio,
 			} );
@@ -112,13 +112,13 @@ const createCellBlock = ( cell, colSpan = 1, rowSpan = 1 ) => {
 			return createBlock( 'core/paragraph', {
 				placeholder: __(
 					'Drop a thought here. Two short sentences, just enough to balance the motion next door.',
-					'motion-blocks'
+					'motion-canvas'
 				),
 			} );
 		case 'heading':
 			return createBlock( 'core/heading', {
 				level: 2,
-				placeholder: __( 'Your headline here', 'motion-blocks' ),
+				placeholder: __( 'Your headline here', 'motion-canvas' ),
 			} );
 		case 'image':
 			return createBlock( 'core/image', {} );
@@ -442,7 +442,7 @@ const LayoutThumbnail = ( { template, rows, columns, isSelected, isSupported, on
 						fontStyle: 'italic',
 					} }
 				>
-					{ __( 'N/A at this size', 'motion-blocks' ) }
+					{ __( 'N/A at this size', 'motion-canvas' ) }
 				</div>
 			) }
 			<div
@@ -515,26 +515,26 @@ export default function Edit( { clientId } ) {
 		<div { ...blockProps }>
 			<div className="mb-motion-layout-config__header">
 				<h3 className="mb-motion-layout-config__title">
-					{ __( 'Motion Layout', 'motion-blocks' ) }
+					{ __( 'Motion Layout', 'motion-canvas' ) }
 				</h3>
 				<p className="mb-motion-layout-config__hint">
-					{ __( 'Configure the layout below, then click "Insert layout."', 'motion-blocks' ) }
+					{ __( 'Configure the layout below, then click "Insert layout."', 'motion-canvas' ) }
 				</p>
 			</div>
 
 			<div className="mb-motion-layout-config__section">
 				<h4 className="mb-motion-layout-config__section-title">
-					{ __( 'Grid size', 'motion-blocks' ) }
+					{ __( 'Grid size', 'motion-canvas' ) }
 				</h4>
 				<RangeControl
-					label={ __( 'Rows', 'motion-blocks' ) }
+					label={ __( 'Rows', 'motion-canvas' ) }
 					value={ rows }
 					onChange={ ( value ) => setRows( value ) }
 					min={ 1 }
 					max={ 4 }
 				/>
 				<RangeControl
-					label={ __( 'Columns', 'motion-blocks' ) }
+					label={ __( 'Columns', 'motion-canvas' ) }
 					value={ columns }
 					onChange={ ( value ) => setColumns( value ) }
 					min={ 1 }
@@ -544,7 +544,7 @@ export default function Edit( { clientId } ) {
 
 			<div className="mb-motion-layout-config__section">
 				<h4 className="mb-motion-layout-config__section-title">
-					{ __( 'Layout selection', 'motion-blocks' ) }
+					{ __( 'Layout selection', 'motion-canvas' ) }
 				</h4>
 				<div className="mb-motion-layout-config__templates">
 					{ LAYOUT_TEMPLATES.map( ( template ) => {
@@ -567,10 +567,10 @@ export default function Edit( { clientId } ) {
 
 			<div className="mb-motion-layout-config__section">
 				<h4 className="mb-motion-layout-config__section-title">
-					{ __( 'Layout preview', 'motion-blocks' ) }
+					{ __( 'Layout preview', 'motion-canvas' ) }
 				</h4>
 				<p className="mb-motion-layout-config__hint">
-					{ __( 'Click a cell to choose its content type.', 'motion-blocks' ) }
+					{ __( 'Click a cell to choose its content type.', 'motion-canvas' ) }
 				</p>
 				<div
 					className="mb-motion-layout-config__preview"
@@ -629,24 +629,24 @@ export default function Edit( { clientId } ) {
 
 			<div className="mb-motion-layout-config__section">
 				<h4 className="mb-motion-layout-config__section-title">
-					{ __( 'Scroll reveal', 'motion-blocks' ) }
+					{ __( 'Scroll reveal', 'motion-canvas' ) }
 				</h4>
 				<SelectControl
-					label={ __( 'Reveal style', 'motion-blocks' ) }
+					label={ __( 'Reveal style', 'motion-canvas' ) }
 					value={ revealStyle }
 					options={ REVEAL_STYLE_OPTIONS }
 					onChange={ ( val ) => setRevealStyle( val ) }
 				/>
 				<SelectControl
-					label={ __( 'Cadence', 'motion-blocks' ) }
+					label={ __( 'Cadence', 'motion-canvas' ) }
 					value={ revealCadence }
 					options={ REVEAL_CADENCE_OPTIONS }
 					onChange={ ( val ) => setRevealCadence( val ) }
 					disabled={ ! revealEnabled }
-					help={ __( 'How cells appear relative to each other.', 'motion-blocks' ) }
+					help={ __( 'How cells appear relative to each other.', 'motion-canvas' ) }
 				/>
 				<SelectControl
-					label={ __( 'Speed', 'motion-blocks' ) }
+					label={ __( 'Speed', 'motion-canvas' ) }
 					value={ revealSpeed }
 					options={ REVEAL_SPEED_OPTIONS }
 					onChange={ ( val ) => setRevealSpeed( val ) }
@@ -660,7 +660,7 @@ export default function Edit( { clientId } ) {
 					onClick={ handleInsert }
 					className="mb-motion-layout-config__insert"
 				>
-					{ __( 'Insert layout', 'motion-blocks' ) }
+					{ __( 'Insert layout', 'motion-canvas' ) }
 				</Button>
 			</div>
 		</div>

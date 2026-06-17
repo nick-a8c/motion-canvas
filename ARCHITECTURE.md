@@ -21,7 +21,7 @@ These surfaces share one module: a layout-template definitions file used by both
 ## File map
 
 ```
-motion-blocks.php
+motion-canvas.php
   Plugin entry. Registers blocks via WordPress 6.8's
   wp_register_block_types_from_metadata_collection. MIME whitelist
   for .riv, .json, .splinecode, .html, .htm. Enqueues frontend
@@ -30,7 +30,7 @@ motion-blocks.php
 readme.txt
   WordPress.org-style readme.
 
-src/motion-blocks/
+src/motion-canvas/
   block.json     Block metadata
   edit.js        Editor UI: format dropdown, file/URL input, lottie
                  live preview, sidebar inspector, format-switch modal
@@ -97,7 +97,7 @@ This is the most non-obvious technical detail in the plugin. Read this before to
 2. On mount: imperatively creates an inner div via `document.createElement`, appends it to the wrapper, hands the inner div to lottie
 3. On cleanup: destroys the lottie animation, then `wrapper.removeChild(innerDiv)`
 
-React only sees the outer wrapper. The inner div with all of lottie's SVG mutations is invisible to its reconciler. See `src/motion-blocks/edit.js`, the `useEffect` keyed on `[fileUrl, animationType]`.
+React only sees the outer wrapper. The inner div with all of lottie's SVG mutations is invisible to its reconciler. See `src/motion-canvas/edit.js`, the `useEffect` keyed on `[fileUrl, animationType]`.
 
 This pattern is non-negotiable. Removing it brings back the `removeChild` crash on format switching.
 

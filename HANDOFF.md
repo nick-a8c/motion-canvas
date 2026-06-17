@@ -10,7 +10,7 @@ For how the plugin is built, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 **The plugin is in shippable shape.** Every code task is done. Remaining work is polish + content (a demo page, a demo video, README screenshots) — none of it is coding the core blocks.
 
-The plugin is published as **Motion** at [github.com/nick-a8c/motion-blocks](https://github.com/nick-a8c/motion-blocks). Latest release: v0.3.0.
+The plugin is published as **Motion** at [github.com/nick-a8c/motion-canvas](https://github.com/nick-a8c/motion-canvas). Latest release: v0.3.0.
 
 ## What's done
 
@@ -76,10 +76,10 @@ Hard-refresh WordPress after any change. Restart the watcher if you add or delet
 
 To cut a new version:
 
-1. Bump `version` in `package.json`, `Version:` header in `motion-blocks.php`, and `Stable tag:` in `readme.txt` — all three must match.
+1. Bump `version` in `package.json`, `Version:` header in `motion-canvas.php`, and `Stable tag:` in `readme.txt` — all three must match.
 2. Add a changelog entry near the bottom of `readme.txt` under `== Changelog ==`.
 3. `npm run build && npm run plugin-zip`
-4. `gh release create vX.Y.Z motion-blocks.zip --title "..." --notes "..."`
+4. `gh release create vX.Y.Z motion-canvas.zip --title "..." --notes "..."`
 5. `git add -A && git commit -m "Bump version to X.Y.Z" && git push`
 
 ## Recent commit history

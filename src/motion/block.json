@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "motion-blocks/motion",
+    "name": "motion-canvas/motion",
     "version": "0.2.0",
     "title": "Animation",
     "category": "media",
@@ -61,7 +61,7 @@
         }
         
     },
-    "textdomain": "motion-blocks",
+    "textdomain": "motion-canvas",
     "editorScript": "file:./index.js",
     "editorStyle": "file:./index.css",
     "style": "file:./style-index.css",

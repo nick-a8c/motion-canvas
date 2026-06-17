@@ -29,25 +29,25 @@ import { __ } from '@wordpress/i18n';
 const BUILDER_MARKER_CLASS = 'mb-builder-layout';
 
 const REVEAL_STYLE_OPTIONS = [
-	{ label: __( 'None', 'motion-blocks' ), value: 'none' },
-	{ label: __( 'Fade', 'motion-blocks' ), value: 'fade' },
-	{ label: __( 'Fade up', 'motion-blocks' ), value: 'fade-up' },
-	{ label: __( 'Zoom', 'motion-blocks' ), value: 'zoom' },
-	{ label: __( 'Blur', 'motion-blocks' ), value: 'blur' },
-	{ label: __( 'Slide in', 'motion-blocks' ), value: 'slide' },
+	{ label: __( 'None', 'motion-canvas' ), value: 'none' },
+	{ label: __( 'Fade', 'motion-canvas' ), value: 'fade' },
+	{ label: __( 'Fade up', 'motion-canvas' ), value: 'fade-up' },
+	{ label: __( 'Zoom', 'motion-canvas' ), value: 'zoom' },
+	{ label: __( 'Blur', 'motion-canvas' ), value: 'blur' },
+	{ label: __( 'Slide in', 'motion-canvas' ), value: 'slide' },
 ];
 
 const REVEAL_CADENCE_OPTIONS = [
-	{ label: __( 'Together', 'motion-blocks' ), value: 'together' },
-	{ label: __( 'By row', 'motion-blocks' ), value: 'row' },
-	{ label: __( 'By cell', 'motion-blocks' ), value: 'cell' },
-	{ label: __( 'By column', 'motion-blocks' ), value: 'column' },
+	{ label: __( 'Together', 'motion-canvas' ), value: 'together' },
+	{ label: __( 'By row', 'motion-canvas' ), value: 'row' },
+	{ label: __( 'By cell', 'motion-canvas' ), value: 'cell' },
+	{ label: __( 'By column', 'motion-canvas' ), value: 'column' },
 ];
 
 const REVEAL_SPEED_OPTIONS = [
-	{ label: __( 'Snappy', 'motion-blocks' ), value: 'snappy' },
-	{ label: __( 'Smooth', 'motion-blocks' ), value: 'smooth' },
-	{ label: __( 'Slow & cinematic', 'motion-blocks' ), value: 'cinematic' },
+	{ label: __( 'Snappy', 'motion-canvas' ), value: 'snappy' },
+	{ label: __( 'Smooth', 'motion-canvas' ), value: 'smooth' },
+	{ label: __( 'Slow & cinematic', 'motion-canvas' ), value: 'cinematic' },
 ];
 
 // Pull current reveal config out of a className string.
@@ -136,32 +136,32 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 				<BlockEdit { ...props } />
 				<InspectorControls>
 					<PanelBody
-						title={ __( 'Scroll reveal', 'motion-blocks' ) }
+						title={ __( 'Scroll reveal', 'motion-canvas' ) }
 						initialOpen={ true }
 					>
 						<p style={ { marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' } }>
 							{ __(
 								'Animate this layout into view as visitors scroll. Changes apply live.',
-								'motion-blocks'
+								'motion-canvas'
 							) }
 						</p>
 
 						<SelectControl
-							label={ __( 'Reveal style', 'motion-blocks' ) }
+							label={ __( 'Reveal style', 'motion-canvas' ) }
 							value={ reveal.style }
 							options={ REVEAL_STYLE_OPTIONS }
 							onChange={ ( val ) => updateReveal( { style: val } ) }
 						/>
 						<SelectControl
-							label={ __( 'Cadence', 'motion-blocks' ) }
+							label={ __( 'Cadence', 'motion-canvas' ) }
 							value={ reveal.cadence }
 							options={ REVEAL_CADENCE_OPTIONS }
 							onChange={ ( val ) => updateReveal( { cadence: val } ) }
 							disabled={ ! revealEnabled }
-							help={ __( 'How cells appear relative to each other.', 'motion-blocks' ) }
+							help={ __( 'How cells appear relative to each other.', 'motion-canvas' ) }
 						/>
 						<SelectControl
-							label={ __( 'Speed', 'motion-blocks' ) }
+							label={ __( 'Speed', 'motion-canvas' ) }
 							value={ reveal.speed }
 							options={ REVEAL_SPEED_OPTIONS }
 							onChange={ ( val ) => updateReveal( { speed: val } ) }
@@ -172,7 +172,7 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 							<p style={ { marginTop: '12px', color: '#757575', fontSize: '11px', fontStyle: 'italic' } }>
 								{ __(
 									'Reveal runs once when the layout enters view. Visitors who prefer reduced motion will see content appear instantly.',
-									'motion-blocks'
+									'motion-canvas'
 								) }
 							</p>
 						) }
@@ -185,6 +185,6 @@ const withMotionLayoutControls = createHigherOrderComponent( ( BlockEdit ) => {
 
 addFilter(
 	'editor.BlockEdit',
-	'motion-blocks/motion-layout-controls',
+	'motion-canvas/motion-layout-controls',
 	withMotionLayoutControls
 );

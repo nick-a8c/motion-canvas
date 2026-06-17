@@ -1,16 +1,16 @@
-# Motion Blocks
+# Motion Canvas
 
 A WordPress plugin that adds interactive motion graphics to posts and pages. Supports four animation formats — Rive, Spline, Lottie, and standalone HTML — in a single block. Also includes a Motion Layout composer for arranging animations in scroll-revealed multi-cell layouts.
 
 ## Download
 
-**[→ Download the latest release (motion-blocks.zip)](https://github.com/nick-a8c/motion-blocks/releases/latest)**
+**[→ Download the latest release (motion-canvas.zip)](https://github.com/nick-a8c/motion-canvas/releases/latest)**
 
-The release page above always points to the newest version. Click the `motion-blocks.zip` asset under "Assets" to download.
+The release page above always points to the newest version. Click the `motion-canvas.zip` asset under "Assets" to download.
 
 ## Install
 
-1. Download `motion-blocks.zip` from the [releases page](https://github.com/nick-a8c/motion-blocks/releases/latest).
+1. Download `motion-canvas.zip` from the [releases page](https://github.com/nick-a8c/motion-canvas/releases/latest).
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**.
 3. Click **Choose File**, select the downloaded zip, then click **Install Now**.
 4. Click **Activate Plugin** when the install finishes.
@@ -36,8 +36,8 @@ See [`readme.txt`](./readme.txt) for the full feature list, FAQ, and changelog.
 If you want to build from source rather than use the release zip:
 
 ```bash
-git clone https://github.com/nick-a8c/motion-blocks.git
-cd motion-blocks
+git clone https://github.com/nick-a8c/motion-canvas.git
+cd motion-canvas
 npm install
 npm start          # watcher: rebuilds on save
 # or

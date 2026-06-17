@@ -1,4 +1,4 @@
-=== Motion Blocks ===
+=== Motion Canvas ===
 Contributors: automattic, creativelab
 Tags: animation, motion, rive, spline, lottie, interactive, blocks, gutenberg
 Requires at least: 6.8
@@ -41,7 +41,7 @@ A second feature, the Motion Layout Builder, lives in the editor sidebar. Use it
 
 == Installation ==
 
-1. Upload the `motion-blocks` folder to `/wp-content/plugins/`, or install the .zip via Plugins → Add New → Upload Plugin
+1. Upload the `motion-canvas` folder to `/wp-content/plugins/`, or install the .zip via Plugins → Add New → Upload Plugin
 2. Activate the plugin through the Plugins screen in WordPress
 3. In any post or page, click the + button and search for "Rive" or "animation" to insert the block
 4. To use the Motion Layout Builder, open any post in the editor and look for the sidebar icon (four squares)

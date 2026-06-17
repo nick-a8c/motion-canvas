@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "motion-blocks/motion-layout",
+    "name": "motion-canvas/motion-layout",
     "version": "0.1.0",
     "title": "Motion Layout",
     "category": "design",
@@ -14,7 +14,7 @@
         "inserter": true
     },
     "attributes": {},
-    "textdomain": "motion-blocks",
+    "textdomain": "motion-canvas",
     "editorScript": "file:./index.js",
     "editorStyle": "file:./index.css"
 }

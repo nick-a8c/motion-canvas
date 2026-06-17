@@ -43,10 +43,10 @@ const TYPE_OPTIONS = [
 // placeholder. Explains what each format is for users who may not
 // recognize the name.
 const TYPE_HELPER_TEXT = {
-	rive: __( 'Interactive vector animations. Upload a .riv file from Rive.', 'motion-blocks' ),
-	spline: __( '3D scenes from spline.design. Paste the public viewer URL.', 'motion-blocks' ),
-	lottie: __( 'Lightweight JSON animations from After Effects. Upload a .json file.', 'motion-blocks' ),
-	html: __( 'Standalone HTML animation. Upload a self-contained .html file.', 'motion-blocks' ),
+	rive: __( 'Interactive vector animations. Upload a .riv file from Rive.', 'motion-canvas' ),
+	spline: __( '3D scenes from spline.design. Paste the public viewer URL.', 'motion-canvas' ),
+	lottie: __( 'Lightweight JSON animations from After Effects. Upload a .json file.', 'motion-canvas' ),
+	html: __( 'Standalone HTML animation. Upload a self-contained .html file.', 'motion-canvas' ),
 };
 
 const REVEAL_STYLE_OPTIONS = [
@@ -73,7 +73,7 @@ const validateSplineUrl = (raw) => {
 	const trimmed = (raw || '').trim();
 
 	if (!trimmed) {
-		return { ok: false, message: __('Please paste a URL.', 'motion-blocks') };
+		return { ok: false, message: __('Please paste a URL.', 'motion-canvas') };
 	}
 
 	if (/<iframe|<\/iframe>/i.test(trimmed)) {
@@ -81,7 +81,7 @@ const validateSplineUrl = (raw) => {
 			ok: false,
 			message: __(
 				'Looks like you pasted embed code. Use the public viewer URL instead — the one that starts with https://my.spline.design/',
-				'motion-blocks'
+				'motion-canvas'
 			),
 		};
 	}
@@ -91,7 +91,7 @@ const validateSplineUrl = (raw) => {
 			ok: false,
 			message: __(
 				'Looks like you pasted Hana embed code. Use the public viewer URL instead — the one that starts with https://my.spline.design/',
-				'motion-blocks'
+				'motion-canvas'
 			),
 		};
 	}
@@ -104,14 +104,14 @@ const validateSplineUrl = (raw) => {
 	} catch (e) {
 		return {
 			ok: false,
-			message: __('That doesn\'t look like a valid URL.', 'motion-blocks'),
+			message: __('That doesn\'t look like a valid URL.', 'motion-canvas'),
 		};
 	}
 
 	if (parsed.protocol !== 'https:') {
 		return {
 			ok: false,
-			message: __('Spline URLs must start with https://', 'motion-blocks'),
+			message: __('Spline URLs must start with https://', 'motion-canvas'),
 		};
 	}
 
@@ -120,7 +120,7 @@ const validateSplineUrl = (raw) => {
 			ok: false,
 			message: __(
 				'That doesn\'t look like a Spline URL. It should be on spline.design.',
-				'motion-blocks'
+				'motion-canvas'
 			),
 		};
 	}
@@ -141,7 +141,7 @@ const verifySplineUrlReachable = async (url) => {
 				ok: false,
 				message: __(
 					'This URL didn\'t load. Make sure your Spline scene is published and the link is correct.',
-					'motion-blocks'
+					'motion-canvas'
 				),
 			};
 		}
@@ -153,7 +153,7 @@ const verifySplineUrlReachable = async (url) => {
 					ok: false,
 					message: __(
 						'This Spline scene isn\'t public. Make sure the scene is set to public in Spline.',
-						'motion-blocks'
+						'motion-canvas'
 					),
 				};
 			}
@@ -268,13 +268,13 @@ export default function Edit({ attributes, setAttributes }) {
 	const uploadLabel = () => {
 		switch (animationType) {
 			case 'rive':
-				return __('Upload Rive file (.riv)', 'motion-blocks');
+				return __('Upload Rive file (.riv)', 'motion-canvas');
 			case 'lottie':
-				return __('Upload Lottie file (.json)', 'motion-blocks');
+				return __('Upload Lottie file (.json)', 'motion-canvas');
 			case 'html':
-				return __('Upload HTML file (.html)', 'motion-blocks');
+				return __('Upload HTML file (.html)', 'motion-canvas');
 			default:
-				return __('Upload Animation File', 'motion-blocks');
+				return __('Upload Animation File', 'motion-canvas');
 		}
 	};
 
@@ -381,7 +381,7 @@ export default function Edit({ attributes, setAttributes }) {
 				<ToolbarGroup>
 				<ToolbarDropdownMenu
 					icon={ TOOLBAR_FORMAT_ICON }
-					label={ __( 'Format', 'motion-blocks' ) }
+					label={ __( 'Format', 'motion-canvas' ) }
 					text={ getTypeLabel( animationType ) }
 					controls={ toolbarFormatControls }
 				/>
@@ -389,22 +389,22 @@ export default function Edit({ attributes, setAttributes }) {
 			</BlockControls>
 
 			<InspectorControls>
-				<PanelBody title={__('Animation Settings', 'motion-blocks')}>
+				<PanelBody title={__('Animation Settings', 'motion-canvas')}>
 					<SelectControl
-						label={__('Animation Type', 'motion-blocks')}
+						label={__('Animation Type', 'motion-canvas')}
 						value={animationType}
 						options={TYPE_OPTIONS}
 						onChange={(val) => requestToolbarFormatChange(val)}
 					/>
 					<TextControl
-						label={__('Aspect ratio (optional)', 'motion-blocks')}
-						help={__('e.g. 16/9, 1/1, 4/3. Leave blank to use the file\'s native ratio.', 'motion-blocks')}
+						label={__('Aspect ratio (optional)', 'motion-canvas')}
+						help={__('e.g. 16/9, 1/1, 4/3. Leave blank to use the file\'s native ratio.', 'motion-canvas')}
 						value={aspectRatio || ''}
 						onChange={(val) => setAttributes({ aspectRatio: val })}
 					/>
 					<RangeControl
-						label={__('Max width (px)', 'motion-blocks')}
-						help={__('Cap the block\'s maximum width. Leave blank to use the default (600px for centered blocks).', 'motion-blocks')}
+						label={__('Max width (px)', 'motion-canvas')}
+						help={__('Cap the block\'s maximum width. Leave blank to use the default (600px for centered blocks).', 'motion-canvas')}
 						value={maxWidth}
 						onChange={(val) => setAttributes({ maxWidth: val })}
 						min={100}
@@ -415,8 +415,8 @@ export default function Edit({ attributes, setAttributes }) {
 					{animationType === 'lottie' && (
 						<>
 							<SelectControl
-								label={__('Trigger', 'motion-blocks')}
-								help={__('When should the animation start?', 'motion-blocks')}
+								label={__('Trigger', 'motion-canvas')}
+								help={__('When should the animation start?', 'motion-canvas')}
 								value={trigger}
 								options={[
 									{ label: 'Autoplay (on page load)', value: 'autoplay' },
@@ -427,19 +427,19 @@ export default function Edit({ attributes, setAttributes }) {
 								onChange={(val) => setAttributes({ trigger: val })}
 							/>
 							<ToggleControl
-								label={__('Autoplay', 'motion-blocks')}
-								help={__('Start playing automatically when the trigger fires.', 'motion-blocks')}
+								label={__('Autoplay', 'motion-canvas')}
+								help={__('Start playing automatically when the trigger fires.', 'motion-canvas')}
 								checked={autoplay}
 								onChange={(val) => setAttributes({ autoplay: val })}
 							/>
 							<ToggleControl
-								label={__('Loop', 'motion-blocks')}
-								help={__('Repeat the animation when it ends.', 'motion-blocks')}
+								label={__('Loop', 'motion-canvas')}
+								help={__('Repeat the animation when it ends.', 'motion-canvas')}
 								checked={loop}
 								onChange={(val) => setAttributes({ loop: val })}
 							/>
 							<RangeControl
-								label={__('Playback speed', 'motion-blocks')}
+								label={__('Playback speed', 'motion-canvas')}
 								value={playbackSpeed}
 								onChange={(val) => setAttributes({ playbackSpeed: val })}
 								min={0.25}
@@ -451,7 +451,7 @@ export default function Edit({ attributes, setAttributes }) {
 					{animationType === 'spline' && (
 						<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 							<TextControl
-								label={__('Spline Public URL', 'motion-blocks')}
+								label={__('Spline Public URL', 'motion-canvas')}
 								placeholder="https://my.spline.design/..."
 								value={sidebarUrlDraft}
 								onChange={(val) => {
@@ -462,8 +462,8 @@ export default function Edit({ attributes, setAttributes }) {
 								disabled={sidebarChecking}
 								help={
 									sidebarChecking
-										? __('Checking URL…', 'motion-blocks')
-										: __('Click away from the field to validate.', 'motion-blocks')
+										? __('Checking URL…', 'motion-canvas')
+										: __('Click away from the field to validate.', 'motion-canvas')
 								}
 							/>
 							{sidebarError && (
@@ -481,7 +481,7 @@ export default function Edit({ attributes, setAttributes }) {
 								render={({ open }) => (
 									<Button variant="primary" onClick={open}>
 										{fileUrl
-											? __('Replace File', 'motion-blocks')
+											? __('Replace File', 'motion-canvas')
 											: uploadLabel()}
 									</Button>
 								)}
@@ -496,25 +496,25 @@ export default function Edit({ attributes, setAttributes }) {
 				</PanelBody>
 
 				<PanelBody
-					title={__('Scroll reveal', 'motion-blocks')}
+					title={__('Scroll reveal', 'motion-canvas')}
 					initialOpen={false}
 				>
 					<p style={{ marginTop: 0, marginBottom: '12px', color: '#757575', fontSize: '12px' }}>
 						{__(
 							'Animate this block into view as visitors scroll. Disabled by default.',
-							'motion-blocks'
+							'motion-canvas'
 						)}
 					</p>
 
 					<SelectControl
-						label={__('Reveal style', 'motion-blocks')}
+						label={__('Reveal style', 'motion-canvas')}
 						value={revealStyle || 'none'}
 						options={REVEAL_STYLE_OPTIONS}
 						onChange={(val) => setAttributes({ revealStyle: val })}
 					/>
 
 					<SelectControl
-						label={__('Speed', 'motion-blocks')}
+						label={__('Speed', 'motion-canvas')}
 						value={revealSpeed || 'smooth'}
 						options={REVEAL_SPEED_OPTIONS}
 						onChange={(val) => setAttributes({ revealSpeed: val })}
@@ -525,7 +525,7 @@ export default function Edit({ attributes, setAttributes }) {
 						<p style={{ marginTop: '12px', color: '#757575', fontSize: '11px', fontStyle: 'italic' }}>
 							{__(
 								'Reveal runs once when the block enters view. Visitors who prefer reduced motion will see content appear instantly.',
-								'motion-blocks'
+								'motion-canvas'
 							)}
 						</p>
 					)}
@@ -570,12 +570,12 @@ export default function Edit({ attributes, setAttributes }) {
 								lineHeight: 1.4,
 							}}
 						>
-							{__('Embed an interactive animation. Pick a format below.', 'motion-blocks')}
+							{__('Embed an interactive animation. Pick a format below.', 'motion-canvas')}
 						</p>
 
 						<div style={{ width: '100%', maxWidth: '320px' }}>
 							<SelectControl
-								label={__('Format', 'motion-blocks')}
+								label={__('Format', 'motion-canvas')}
 								value={animationType}
 								options={TYPE_OPTIONS}
 								onChange={handleInlineTypeChange}
@@ -619,11 +619,11 @@ export default function Edit({ attributes, setAttributes }) {
 										<>
 											<Spinner />
 											<span style={{ marginLeft: '6px' }}>
-												{__('Checking…', 'motion-blocks')}
+												{__('Checking…', 'motion-canvas')}
 											</span>
 										</>
 									) : (
-										__('Use this URL', 'motion-blocks')
+										__('Use this URL', 'motion-canvas')
 									)}
 								</Button>
 								{splineError && (
@@ -662,7 +662,7 @@ export default function Edit({ attributes, setAttributes }) {
 						}}
 					>
 						<p className="mb-frontend-placeholder__text" style={{ fontSize: '13px', margin: 0, textAlign: 'center' }}>
-							{__('⚡ Renders on frontend', 'motion-blocks')}
+							{__('⚡ Renders on frontend', 'motion-canvas')}
 						</p>
 					</div>
 				)}
@@ -670,28 +670,28 @@ export default function Edit({ attributes, setAttributes }) {
 
 			{ pendingFormatSwitch && (
 				<Modal
-					title={ __( 'Switch animation format?', 'motion-blocks' ) }
+					title={ __( 'Switch animation format?', 'motion-canvas' ) }
 					onRequestClose={ cancelFormatSwitch }
 					size="small"
 				>
 					<p style={ { marginTop: 0 } }>
 						{ __(
 							'Switching format will remove your current file. You can upload a new one after.',
-							'motion-blocks'
+							'motion-canvas'
 						) }
 					</p>
 					<p style={ { color: '#757575', fontSize: '13px' } }>
-						{ __( 'From: ', 'motion-blocks' ) }
+						{ __( 'From: ', 'motion-canvas' ) }
 						<strong>{ getTypeLabel( animationType ) }</strong>
-						{ __( ' → To: ', 'motion-blocks' ) }
+						{ __( ' → To: ', 'motion-canvas' ) }
 						<strong>{ getTypeLabel( pendingFormatSwitch ) }</strong>
 					</p>
 					<div style={ { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' } }>
 						<Button variant="tertiary" onClick={ cancelFormatSwitch }>
-							{ __( 'Cancel', 'motion-blocks' ) }
+							{ __( 'Cancel', 'motion-canvas' ) }
 						</Button>
 						<Button variant="primary" isDestructive onClick={ confirmFormatSwitch }>
-							{ __( 'Switch and remove file', 'motion-blocks' ) }
+							{ __( 'Switch and remove file', 'motion-canvas' ) }
 						</Button>
 					</div>
 				</Modal>

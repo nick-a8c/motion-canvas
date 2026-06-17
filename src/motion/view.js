@@ -136,7 +136,7 @@ function mountHtmlIframe( wrapper, fileUrl ) {
     }, 8000 );
 }
 
-document.querySelectorAll( '.wp-block-motion-blocks-motion' ).forEach( ( block ) => {    const fileUrl = block.dataset.fileUrl;
+document.querySelectorAll( '.wp-block-motion-canvas-motion' ).forEach( ( block ) => {    const fileUrl = block.dataset.fileUrl;
     const animationType = block.dataset.animationType;
     const aspectRatioAttr = block.dataset.aspectRatio;
 
