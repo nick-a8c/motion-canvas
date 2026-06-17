@@ -9,9 +9,9 @@ A WordPress plugin that adds interactive motion graphics to posts and pages. Sup
 The release page above always points to the newest version. Click the `motion-canvas.zip` asset under "Assets" to download.
 
 <!-- Hero: drop a Ring-layout screenshot at examples/00-cover-ring.png and add it above this line for a Ring hero. -->
-![motion-canvas](img/block-call.jpg)
-![motion-canvas](img/motion-layout.jpg)
-![motion-canvas](img/animation.jpg)
+![motion-canvas](img/block-call-1.jpg)
+![motion-canvas](img/motion-layout-1.jpg)
+![motion-canvas](img/animation-1.jpg)
 
 ## Install
 
